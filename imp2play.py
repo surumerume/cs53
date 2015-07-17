@@ -79,7 +79,7 @@ def draw():
         for i in range(num_of_mesh):
             for j in range(3):
                 #ポリゴン描画
-                glVertex3f(coordinates[meshdata[i][j]][0],coordinates[meshdata[i][j]][1],u_vec[meshdata[i][j]])
+                glVertex3f(coordinates[meshdata[i][j]][0],u_vec[meshdata[i][j]],coordinates[meshdata[i][j]][1])
         glEnd()
         #-----フレーム表示-----
         glColor4f(0.1, 0.1, 0.1, 0.5)
