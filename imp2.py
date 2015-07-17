@@ -36,30 +36,68 @@ t = dt
 #output
 count = 0
 output_txt_file_name = 'result/%04d.txt' % count
-f = open(output_txt_file_name, 'a')
-#meshdata
-cells = mesh.cells()
-l = []
-for i in range(len(cells)):
-    for j in range(len(cells[0])):
-        l.append(cells[i][j]) 
-text = ','.join(map(str,l)) 
-f.write(text+'\n')
-#coordinates
-coordinates = mesh.coordinates()
-l = []
-for i in range(len(coordinates)):
-    for j in range(len(coordinates[0])):
-        l.append(coordinates[i][j]) 
-text = ','.join(map(str,l)) 
-f.write(text+'\n')
-#u
+'''
+for (i, cell) in enumerate(cells(V.mesh())):
+    print "Global dofs associated with cell %d: " % i,
+    print V.dofmap().cell_dofs(i)
+    print "The Dof coordinates:",
+    print V.dofmap().tabulate_coordinates(cell)
+'''
+
+def outputData(output_txt_file_name, cells,coordinates,u_vec,dof_to_vertex_map_values):
+    f = open(output_txt_file_name, 'a')
+    #meshdata
+    l = []
+    for i in range(len(cells)):
+        for j in range(len(cells[0])):
+            l.append(cells[i][j]) 
+    text = ','.join(map(str,l)) 
+    f.write(text+'\n')
+    #coordinates
+    l = []
+    for i in range(len(coordinates)):
+        for j in range(len(coordinates[0])):
+            l.append(coordinates[i][j]) 
+    text = ','.join(map(str,l)) 
+    f.write(text+'\n')
+    #value of u
+    value = np.zeros( (len(u_vec)) )
+    for i in range(len(u_vec)):
+        value[dof_to_vertex_map_values[i]] = u_vec[i] 
+    l = value.tolist()
+    text = ','.join(map(str,l)) 
+    f.write(text+'\n')
+    f.close()
+
+outputData(output_txt_file_name, mesh.cells(), mesh.coordinates(), u_1.vector().array(), dof_to_vertex_map(V))
+print dof_to_vertex_map(V)
+dtv = dof_to_vertex_map(V)
+vtd = vertex_to_dof_map(V)
+
+'''
+coords = mesh.coordinates()
+x = u_1.vector()
+dofs_at_vertices = x[dof_to_vertex_map(V)]
+
+# let's iterate over vertices
+for v in vertices(mesh):
+    print 'vertex index', v.index()
+    print 'at point', v.point().str()
+    print 'at coordinates', coords[v.index()]
+    print 'dof', dofs_at_vertices[v.index()]
+'''
+
 u_vec = u_1.vector().array()
-l = []
-for i in range(len(u_vec)):
-    l.append(u_vec[i]) 
-text = ','.join(map(str,l)) 
-f.write(text+'\n')
+X = V.dofmap().tabulate_all_coordinates(mesh)
+X.resize((V.dim(), 2))
+
+print 'dof index | dof coordinate |  dof value'
+for i, (x, v) in enumerate(zip(X, u_vec)):
+    print i, x, v, dtv[i], u_vec[dtv[i]]
+
+#print V.dofmap().cell_dofs()
+
+File("0000.xml") << u_1
 
 while t <= T:
     b = assemble(L)
@@ -73,30 +111,7 @@ while t <= T:
     #output
     count += 1 
     output_txt_file_name = 'result/%04d.txt' % count
-    f = open(output_txt_file_name, 'a')
-    #meshdata
-    cells = mesh.cells()
-    l = []
-    for i in range(len(cells)):
-        for j in range(len(cells[0])):
-            l.append(cells[i][j]) 
-    text = ','.join(map(str,l)) 
-    f.write(text+'\n')
-    #coordinates
-    coordinates = mesh.coordinates()
-    l = []
-    for i in range(len(coordinates)):
-        for j in range(len(coordinates[0])):
-            l.append(coordinates[i][j]) 
-    text = ','.join(map(str,l)) 
-    f.write(text+'\n')
-    #u
-    u_vec = u_1.vector().array()
-    l = []
-    for i in range(len(u_vec)):
-        l.append(u_vec[i]) 
-    text = ','.join(map(str,l)) 
-    f.write(text+'\n')
+    outputData(output_txt_file_name, mesh.cells(), mesh.coordinates(), u_1.vector().array(), dof_to_vertex_map(V))
 
     '''
     # Plot solution and mesh
