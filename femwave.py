@@ -4,7 +4,6 @@
 #vt=uxx-uxxxx-v+utxx
 #q,Du,DDu,Du(-)
 #境界条件考慮
-#クラス化計画
 import os
 import os.path
 import subprocess
@@ -293,7 +292,7 @@ class Femwave:
         f = open(output_txt_file_name, 'a')
         #[memo]
         #s = s + 'hoge'はオーバーヘッドがあって遅いらしいから
-        #こうするといいらしい（伝聞）
+        #こうするといいらしい(伝聞)
         l = []
         #最初の点の真ん中
         #x

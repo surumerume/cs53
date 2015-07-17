@@ -1,6 +1,6 @@
 #!i/usr/bin/env python
 #python player.py foldername
-#foldername内のresult.txtからOpenGLで動画表示（したい）
+#foldername内のresult.txtからOpenGLで動画表示
 
 import os
 import sys
