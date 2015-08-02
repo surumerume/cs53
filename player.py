@@ -38,32 +38,34 @@ def draw():
         #-----遅れている場合フレームを飛ばす-----
         if (now - time_start)/(1000.0/fps) >= 2:
             next_frame += int((now - time_start)/(1000.0/fps)) - 1
-        #-----ファイル読み込み＆更新-----
-        input_txt_file_name = input_folder_name + '/' + str(next_frame) + '.txt'
-        f = open(input_txt_file_name, 'r')
-        #最初の端
-        l = f.readline().replace('\n','').split(',')
-        first_center = np.asarray(l, dtype=np.float32)
-        l = []
-        #弦の部分
-        for point in range(31):
-            #1行ずつ読み込んで処理
+        for num in range(6):
+            #-----ファイル読み込み＆更新-----
+            input_txt_file_name = input_folder_name[num] + '/' + str(next_frame) + '.txt'
+            f = open(input_txt_file_name, 'r')
+            #最初の端
             l = f.readline().replace('\n','').split(',')
-            #中心周りの点を読み込み
-            for i in range(circle_num):
-                for j in range(3):
-                    u[point][i][j] = l[3*i+j]
+            first_center = np.asarray(l, dtype=np.float32)
             l = []
-        #最後の端
-        l = []
-        l = f.readline().replace('\n','').split(',')
-        last_center = np.asarray(l, dtype=np.float32)
-        f.close()
+            #弦の部分
+            for point in range(31):
+                #1行ずつ読み込んで処理
+                l = f.readline().replace('\n','').split(',')
+                #中心周りの点を読み込み
+                for i in range(circle_num):
+                    for j in range(3):
+                        u[num][point][i][j] = l[3*i+j]
+                l = []
+            #最後の端
+            l = []
+            l = f.readline().replace('\n','').split(',')
+            last_center = np.asarray(l, dtype=np.float32)
+            f.close()
         #時間更新
         fps_time = now - time_start
         time_start = now
         if next_frame == 0:
-            wav_file.play()
+            for i in range(6):
+                wav_file[i].play()
             next_frame += 1
         elif next_frame < fps:
             next_frame += 1
@@ -90,10 +92,12 @@ def draw():
         param_string = np.array([0.7,0.5,0.2,1.0])
         glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,param_string)
         #glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,red)
-        #弦の描画
-        draw_string()
         #行列プッシュ(弦の設定をpush)
         glPushMatrix()
+        #弦の描画
+        for num in range(6):
+            glTranslatef(0.0,0.1,0.0) 
+            draw_string(u[num])
         #==========床描画==========
         #[memo]
         #法線(a,b,c)で点P(x0,y0,z0)を通る平面の方程式はax+by+cz+d=0とかける
@@ -105,6 +109,8 @@ def draw():
         #glRotatef(45, 0.0, 0.0, 1.0)
         #glRotatef(45, 0.0, 1.0, 0.0)
         #-----変数設定-----
+        glPopMatrix()
+        glPushMatrix()
         #物体移動
         glTranslatef(trans_floor[0], trans_floor[1], trans_floor[2])
         #材質設定
@@ -140,7 +146,9 @@ def draw():
         glStencilFunc(GL_EQUAL, 1, ~0)
         glStencilOp(GL_KEEP, GL_KEEP, GL_INCR)
         glDisable(GL_DEPTH_TEST)
-        draw_string()
+        for num in range(6):
+            glTranslatef(0.0,0.1,0.0) 
+            draw_string(u[num])
         glEnable(GL_DEPTH_TEST)
         #ビットマスクを解除
         glColorMask(1,1,1,1)
@@ -164,9 +172,9 @@ def draw():
         glutSwapBuffers()
         redisplay_flag = 0
 
-def draw_string():
+def draw_string(u):
     global circle_num
-    global u, first_center, last_center
+    global first_center, last_center
     #法線ベクトル自動正規化
     glEnable(GL_NORMALIZE)
     #-----最初の端っこ塞ぐ-----
@@ -399,23 +407,26 @@ def main(foldername):
     global fps, fps_time 
     global redisplay_flag 
     #==========各種ファイル読み込み==========#
-    if not os.path.exists(foldername):
-        sys.exit ('Error !!')
-    input_folder_name = foldername
-    #-----設定ファイル読み込み-----#
-    input_setting_file_name = input_folder_name + '/setting.txt'
-    f = open(input_setting_file_name, 'r')
-    l = f.readline().replace('\n','').split(',')
-    fps = int(l[0])
-    circle_num = int(l[1])
-    #-----wavファイルをpygameで読み込む-----#
-    pygame.init()
-    input_wav_file_name = input_folder_name + '/result.wav'
-    wav_file = pygame.mixer.Sound(input_wav_file_name)
+    input_folder_name = [] 
+    wav_file = []
+    for i in range(6):
+        if not os.path.exists(foldername[i]):
+            sys.exit ('Error !!')
+        input_folder_name.append(foldername[i])
+        #-----設定ファイル読み込み-----#
+        input_setting_file_name = input_folder_name[i] + '/setting.txt'
+        f = open(input_setting_file_name, 'r')
+        l = f.readline().replace('\n','').split(',')
+        fps = int(l[0])
+        circle_num = int(l[1])
+        #-----wavファイルをpygameで読み込む-----#
+        pygame.init()
+        input_wav_file_name = input_folder_name[i] + '/result.wav'
+        wav_file.append(pygame.mixer.Sound(input_wav_file_name))
     #==========変数設定==========#
     first_center = np.zeros( (3) )
     last_center = np.zeros( (3) )
-    u = np.zeros( (31, circle_num, 3) ) #各点につき円状に12つの点のそれぞれの座標
+    u = np.zeros( (6, 31, circle_num, 3) ) #各点につき円状に12つの点のそれぞれの座標
     prev_mouse = np.zeros( (2) ) #マウスの座標記憶用
     phi = 0.0 
     psi = 0.0
@@ -444,4 +455,4 @@ def main(foldername):
     glutMainLoop()
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv[1:])
