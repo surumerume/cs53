@@ -78,7 +78,7 @@ def draw():
         #弦の描画
         for num in range(string_num):
             glTranslatef(0.0,0.05,0.0) 
-            draw_string(u[num][next_frame-1])
+            draw_string(u[num][next_frame-1],first_center[num],last_center[num])
         #==========床描画==========
         #[memo]
         #法線(a,b,c)で点P(x0,y0,z0)を通る平面の方程式はax+by+cz+d=0とかける
@@ -129,7 +129,7 @@ def draw():
         glDisable(GL_DEPTH_TEST)
         for num in range(string_num):
             glTranslatef(0.0,0.05,0.0) 
-            draw_string(u[num][next_frame-1])
+            draw_string(u[num][next_frame-1],first_center[num],last_center[num])
         glEnable(GL_DEPTH_TEST)
         #ビットマスクを解除
         glColorMask(1,1,1,1)
@@ -153,9 +153,8 @@ def draw():
         glutSwapBuffers()
         redisplay_flag = 0
 
-def draw_string(u):
+def draw_string(u, first_center, last_center):
     global circle_num
-    global first_center, last_center
     #法線ベクトル自動正規化
     glEnable(GL_NORMALIZE)
     #-----最初の端っこ塞ぐ-----
@@ -400,11 +399,11 @@ def main(foldername):
     circle_num = int(l[1])
     wav_file = []
     string_num=6
-    first_center = np.zeros( (3) )
-    last_center = np.zeros( (3) )
+    first_center = np.zeros( (string_num, 3) )
+    last_center = np.zeros( (string_num, 3) )
     u = np.zeros( (string_num, 61, 31, circle_num, 3) ) #各点につき円状に12つの点のそれぞれの座標
     for num in range(string_num):
-        for frame in range(61):
+        for frame in range(fps+1):
             #-----ファイル読み込み＆更新-----
             if not os.path.exists(foldername[num]):
                 sys.exit ('Error !!')
@@ -413,7 +412,7 @@ def main(foldername):
             f = open(input_txt_file_name, 'r')
             #最初の端
             l = f.readline().replace('\n','').split(',')
-            first_center = np.asarray(l, dtype=np.float32)
+            first_center[num] = np.asarray(l, dtype=np.float32)
             l = []
             #弦の部分
             for point in range(31):
@@ -427,7 +426,7 @@ def main(foldername):
             #最後の端
             l = []
             l = f.readline().replace('\n','').split(',')
-            last_center = np.asarray(l, dtype=np.float32)
+            last_center[num] = np.asarray(l, dtype=np.float32)
             f.close()
         #-----wavファイルをpygameで読み込む-----#
         pygame.init()

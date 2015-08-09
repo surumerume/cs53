@@ -11,15 +11,27 @@ import time
 import numpy as np
 
 def call_play_movie():
+    global string_num
+    global length_value
+    global density_value
+    global section_area_value
+    global tension_value
+    global d1_value
+    global d3_value
+    global young_value
+    global moment_value
     #global start,end,time
     ###ボタンラベル変更
     play_movie_button.configure(text='please wait')
-    #フォルダの名前
-    foldername = str(length.get()) + str(density.get()) + str(section_area.get()) + \
-            str(tension.get()) + str(d1.get()) + str(d3.get()) + str(young.get()) + str(moment.get())
-    #フォルダがなければシミュレートして動画作成
-    if not os.path.exists(foldername):
-        simulate(foldername)
+    set_value(string_num)
+    foldername = []
+    for i in range(6):
+        #フォルダの名前
+        foldername.append(str(length_value[i]) + str(density_value[i]) + str(section_area_value[i]) + \
+                str(tension_value[i]) + str(d1_value[i]) + str(d3_value[i]) + str(young_value[i]) + str(moment_value[i]))
+        #フォルダがなければシミュレートして動画作成
+        if not os.path.exists(foldername[i]):
+            simulate(foldername[i],i)
     #動画再生
     #femwave.play_movie(foldername)
     #OpenGL（予定）
@@ -29,7 +41,7 @@ def call_play_movie():
     #巻き添え終了阻止
     ###############
     #ffmpeg命令
-    cmdstring = ('python', 'player.py', foldername)
+    cmdstring = ('python', 'player.py', foldername[0],foldername[1],foldername[2],foldername[3],foldername[4],foldername[5])
     p = subprocess.Popen(cmdstring)
     p.wait()
     p.kill()
@@ -47,45 +59,53 @@ def show_energy_graph():
     #絶対パス
     os.startfile(os.path.abspath(os.path.dirname(__file__)) + '/' + foldername+'/energy.png')
 
-def simulate(foldername):
-        #start = time.time()
-        os.mkdir(foldername)
-        rate = 44100
-        tmax = 1.0
-        step = 0
-        fps = 60 
-        #初期設定（とゼロステップ目出力）
-        fem = Femwave(foldername,rate,length.get(),density.get(),section_area.get(),
-                tension.get(),d1.get(),d3.get(),young.get(),moment.get())
-        #fem.make_u_graph()
+def simulate(foldername,num):
+    global length_value
+    global density_value
+    global section_area_value
+    global tension_value
+    global d1_value
+    global d3_value
+    global young_value
+    global moment_value
+    #start = time.time()
+    os.mkdir(foldername)
+    rate = 44100
+    tmax = 1.0
+    step = 0
+    fps = 60 
+    #初期設定（とゼロステップ目出力）
+    fem = Femwave(foldername,rate,length_value[num],density_value[num],section_area_value[num],
+            tension_value[num],d1_value[num],d3_value[num],young_value[num],moment_value[num])
+    #fem.make_u_graph()
+    fem.calc_energy()
+    fem.set_fps(fps)
+    fem.output_txt_result()
+    #メインループ
+    while step<rate*tmax-1: 
+        step = fem.simulate_one_step()
         fem.calc_energy()
-        fem.set_fps(fps)
-        fem.output_txt_result()
-        #メインループ
-        while step<rate*tmax-1: 
-            step = fem.simulate_one_step()
-            fem.calc_energy()
-            if step%(rate/fps) == 0:
-                fem.output_txt_result()
-                #fem.make_u_graph()
-                per = str(step/rate*100)
-                #ボタンラベル変更
-                #play_movie_button.configure(text=per + '%')
-                #f0.update
-        #その他ファイル出力 
-        #fem.make_u_graph()
-        fem.make_energy_graph()
-        #fem.make_wav_graph()
-        fem.output_wav()
-        fem.output_txt_result()
-        #femwave.make_movie(foldername)
-        #end = time.time()
-        #time = end - start
-        #print ("{0}".format(time))
-        his = str(length.get()) + '|' + str(density.get()) + '|' + str(section_area.get()) + '|' + \
-                str(tension.get()) + '|' + str(d1.get()) + '|' + str(d3.get()) + '|' + \
-                str(young.get()) + '|' + str(moment.get())# + '|' + str(time)
-        add_history(his)
+        if step%(rate/fps) == 0:
+            fem.output_txt_result()
+            #fem.make_u_graph()
+            per = str(step/rate*100)
+            #ボタンラベル変更
+            #play_movie_button.configure(text=per + '%')
+            #f0.update
+    #その他ファイル出力 
+    #fem.make_u_graph()
+    fem.make_energy_graph()
+    #fem.make_wav_graph()
+    fem.output_wav()
+    fem.output_txt_result()
+    #femwave.make_movie(foldername)
+    #end = time.time()
+    #time = end - start
+    #print ("{0}".format(time))
+    his = str(length_value[num]) + '|' + str(density_value[num]) + '|' + str(section_area_value[num]) + '|' + \
+            str(tension_value[num]) + '|' + str(d1_value[num]) + '|' + str(d3_value[num]) + '|' + \
+            str(young_value[num]) + '|' + str(moment_value[num])# + '|' + str(time)
+    add_history(his)
  
 def call_play_wav():
     ###ボタンラベル変更
@@ -144,7 +164,6 @@ def init_history():
         f = open('history.txt', 'w')
         f.write('')
         return 0
-
     for line in f.readlines():
         history.insert('end', line)
     history.see('end')
@@ -175,6 +194,52 @@ def set_history():
     young.set(set_list[6])
     moment.set(set_list[7])
 
+def set_value(string_num):
+    global length_value
+    global density_value
+    global section_area_value
+    global tension_value
+    global d1_value
+    global d3_value
+    global young_value
+    global moment_value
+    length_value[string_num] = length.get() 
+    density_value[string_num] = density.get()
+    section_area_value[string_num] = section_area.get()
+    tension_value[string_num] = tension.get()
+    d1_value[string_num] = d1.get()
+    d3_value[string_num] = d3.get()
+    young_value[string_num] = young.get()
+    moment_value[string_num] = moment.get()
+
+def get_value(string_num):
+    global length_value
+    global density_value
+    global section_area_value
+    global tension_value
+    global d1_value
+    global d3_value
+    global young_value
+    global moment_value
+    length.set(length_value[string_num])
+    density.set(density_value[string_num])
+    section_area.set(section_area_value[string_num])
+    tension.set(tension_value[string_num])
+    d1.set(d1_value[string_num])
+    d3.set(d3_value[string_num])
+    young.set(young_value[string_num])
+    moment.set(moment_value[string_num])
+
+def change_string(next_num):
+    global string_num
+    set_value(string_num)
+    get_value(next_num)
+    for i in range(6):
+        button_text = 'select string' + str(i+1)
+        string_button[i].configure(text=button_text)
+    string_button[next_num].configure(text='now selected')
+    string_num = next_num
+
 ##############################################
 #GUI
 ##############################################
@@ -183,6 +248,48 @@ root = tk.Tk()
 root.title("soundmaker")
 #root.resizable(width='FALSE', height='FALSE')
 root.geometry("900x640")
+
+###弦の選択ボタン
+fstring = tk.Frame(root)
+string_button = []
+string_button.append(tk.Button(fstring, text='now selected', command=lambda:change_string(0)))
+string_button[0].pack(side='left')
+string_button.append(tk.Button(fstring, text='select string2', command=lambda:change_string(1)))
+string_button[1].pack(side='left')
+string_button.append(tk.Button(fstring, text='select string3', command=lambda:change_string(2)))
+string_button[2].pack(side='left')
+string_button.append(tk.Button(fstring, text='select string4', command=lambda:change_string(3)))
+string_button[3].pack(side='left')
+string_button.append(tk.Button(fstring, text='select string5', command=lambda:change_string(4)))
+string_button[4].pack(side='left')
+string_button.append(tk.Button(fstring, text='select string6', command=lambda:change_string(5)))
+string_button[5].pack(side='left')
+
+'''
+string1_button = tk.Button(fstring, text='now selected', command=lambda:change_value(string_num))
+string1_button.pack(side='left')
+string2_button = tk.Button(fstring, text='select string2', command=call_play_movie)
+string2_button.pack(side='left')
+string3_button = tk.Button(fstring, text='select string3', command=call_play_movie)
+string3_button.pack(side='left')
+string4_button = tk.Button(fstring, text='select string4', command=call_play_movie)
+string4_button.pack(side='left')
+string5_button = tk.Button(fstring, text='select string5', command=call_play_movie)
+string5_button.pack(side='left')
+string6_button = tk.Button(fstring, text='select string6', command=call_play_movie)
+string6_button.pack(side='left')
+'''
+fstring.place(relwidth=1.0, relheight=0.05)
+
+string_num = 0 
+length_value = np.array([0.65,0.65,0.65,0.65,0.65,0.65])
+density_value = np.array([1140,1140,1140,1140,1140,1140])
+section_area_value = np.array([0.5188e-6,0.5188e-6,0.5188e-6,0.5188e-6,0.5188e-6,0.5188e-6,0.5188e-6])
+tension_value = np.array([60.97,60.97,60.97,60.97,60.97,60.97])
+d1_value = np.array([8.1e-7,8.1e-7,8.1e-7,8.1e-7,8.1e-7,8.1e-7])
+d3_value = np.array([6.4e-4,6.4e-4,6.4e-4,6.4e-4,6.4e-4,6.4e-4])
+young_value = np.array([5.4e9,5.4e9,5.4e9,5.4e9,5.4e9,5.4e9]) 
+moment_value = np.array([0.171e-12,0.171e-12,0.171e-12,0.171e-12,0.171e-12,0.171e-12])
 
 ###スライドバー
 f0 = tk.Frame(root)
@@ -274,19 +381,16 @@ fs.pack(fill='both', padx=10, pady=14, expand=1)#place(relx=0.03, rely=0.02, rel
 set_default()
 
 fb = tk.Frame(f0)
-
 play_movie_button = tk.Button(fb, text='play movie', command=call_play_movie)
 play_movie_button.pack(fill='both')
-
-show_energy_graph_button = tk.Button(fb, text='show energy graph', command=show_energy_graph)
-show_energy_graph_button.pack(fill='both')
-
+#show_energy_graph_button = tk.Button(fb, text='show energy graph', command=show_energy_graph)
+#show_energy_graph_button.pack(fill='both')
 exit_button = tk.Button(fb, text='Exit', command=sys.exit)
 exit_button.pack(fill='both')
 
 fb.pack(fill='both', expand=1)#place(rely=0.85, relwidth=1.0, relheight=0.2)
 
-f0.place(relwidth=0.5, relheight=1.0)
+f0.place(rely=0.05, relwidth=0.5, relheight=0.95)
 
 ###history
 #設定
@@ -299,7 +403,7 @@ history.configure(yscrollcommand = sb_his.set)
 label_his.place(relwidth=1.0, relheight=0.05)
 history.place(rely=0.05, relwidth=0.95, relheight=0.95)
 sb_his.place(relx=0.95, rely=0.05, relwidth=0.05, relheight=0.95)
-f1.place(relx=0.5, relwidth=0.5, relheight=0.9)
+f1.place(relx=0.5, rely=0.05, relwidth=0.5, relheight=0.85)
 
 f2 = tk.Frame(root)
 set_history_button = tk.Button(f2, text='set', command=set_history)
