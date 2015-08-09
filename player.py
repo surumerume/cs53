@@ -1,4 +1,5 @@
 #!i/usr/bin/env python
+# -*- coding: UTF-8 -*-
 #python player.py foldername
 #foldername内のresult.txtからOpenGLで動画表示
 
@@ -78,7 +79,11 @@ def draw():
         #弦の描画
         for num in range(string_num):
             glTranslatef(0.0,0.05,0.0) 
+<<<<<<< HEAD
             draw_string(u[num][next_frame-1],first_center[num],last_center[num])
+=======
+            draw_string(u[num][next_frame-1], first_center[num], last_center[num])
+>>>>>>> 95e63708230ab257a48cd18240fb557059c0df29
         #==========床描画==========
         #[memo]
         #法線(a,b,c)で点P(x0,y0,z0)を通る平面の方程式はax+by+cz+d=0とかける
@@ -129,7 +134,11 @@ def draw():
         glDisable(GL_DEPTH_TEST)
         for num in range(string_num):
             glTranslatef(0.0,0.05,0.0) 
+<<<<<<< HEAD
             draw_string(u[num][next_frame-1],first_center[num],last_center[num])
+=======
+            draw_string(u[num][next_frame-1], first_center[num], last_center[num])
+>>>>>>> 95e63708230ab257a48cd18240fb557059c0df29
         glEnable(GL_DEPTH_TEST)
         #ビットマスクを解除
         glColorMask(1,1,1,1)
