@@ -48,6 +48,7 @@ def draw():
         if next_frame == 0:
             for i in range(string_num):
                 wav_file[i].play()
+                #pygame.time.wait(30)
             next_frame += 1
         elif next_frame < fps:
             next_frame += 1
@@ -433,6 +434,7 @@ def main(foldername):
         pygame.init()
         input_wav_file_name = foldername[num] + '/result.wav'
         wav_file.append(pygame.mixer.Sound(input_wav_file_name))
+        wav_file[num].set_volume(0.1)
     #==========変数設定==========#
     prev_mouse = np.zeros( (2) ) #マウスの座標記憶用
     phi = 0.0 

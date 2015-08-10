@@ -154,7 +154,7 @@ def change_value(name,value):
     elif name=="moment":
         moment.set(moment.get()+value)
     elif name=="length":
-        length.set(length.get()+value)
+        length.set(length.get()*pow(2,value*1.0/12))
 
 def init_history():
     #ファイルを開き一行ずつhistoryへ
@@ -298,9 +298,9 @@ fs = tk.Frame(f0)
 
 #length
 fs7 = tk.Frame(fs)
-len_plus = tk.Button(fs7, text='+', command=lambda:change_value("length",0.01))
-len_minus = tk.Button(fs7, text='-', command=lambda:change_value("length",-0.01))
-length = tk.Scale(fs7, label='弦の長さ', orient='h', from_=0.0, to=2.0, resolution=0.01)
+len_plus = tk.Button(fs7, text='+', command=lambda:change_value("length",1))
+len_minus = tk.Button(fs7, text='-', command=lambda:change_value("length",-1))
+length = tk.Scale(fs7, label='弦の長さ', orient='h', from_=0.0, to=2.0, resolution=0.0001)
 len_minus.pack(side='left')
 len_plus.pack(side='right')
 length.pack(fill='both')
