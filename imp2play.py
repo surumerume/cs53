@@ -24,6 +24,7 @@ def draw():
     global light0pos
     global fps, fps_time
     global redisplay_flag
+    global u_max, u_min
     #初期待ち時間(player立ち上がり時間考慮)
     wait_time = 500
     #==========フレーム更新|データ読み込み処理==========
@@ -53,6 +54,8 @@ def draw():
         #各点のデータ
         l = f.readline().replace('\n','').split(',')
         u_vec = np.asarray(l, dtype=np.float32)
+        u_max = np.amax(u_vec)
+        u_min = np.amin(u_min)
         l = []
         f.close()
         #時間更新
@@ -79,6 +82,9 @@ def draw():
         for i in range(num_of_mesh):
             for j in range(3):
                 #ポリゴン描画
+                red = u_vec[meshdata[i][j]] / u_max
+                blue = (u_max - u_vec[meshdata[i][j]]) / (u_max - u_min)
+                glColor3d(red, 0, blue)
                 glVertex3f(coordinates[meshdata[i][j]][0],u_vec[meshdata[i][j]],coordinates[meshdata[i][j]][1])
         glEnd()
         #-----フレーム表示-----
@@ -110,8 +116,8 @@ def init():
     glutInitWindowSize(640, 640)
     glutCreateWindow("Soundmaker")
     #-----表裏の表示管理-----#
-    #glEnable(GL_CULL_FACE)
-    #glCullFace(GL_BACK)
+    glEnable(GL_CULL_FACE)
+    glCullFace(GL_BACK)
     #-----視点光源設定-----#
     #glEnable(GL_LIGHTING)
     #glEnable(GL_LIGHT0)
