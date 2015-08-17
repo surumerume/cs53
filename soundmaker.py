@@ -104,7 +104,7 @@ def simulate(foldername,num):
     #print ("{0}".format(time))
     his = str(length_value[num]) + '|' + str(density_value[num]) + '|' + str(section_area_value[num]) + '|' + \
             str(tension_value[num]) + '|' + str(d1_value[num]) + '|' + str(d3_value[num]) + '|' + \
-            str(young_value[num]) + '|' + str(moment_value[num])# + '|' + str(time)
+            str(young_value[num]) + '|' + str(moment_value[num]) + '\n'# + '|' + str(time)
     add_history(his)
  
 def call_play_wav():
@@ -179,7 +179,7 @@ def add_history(add):
     history.see('end')
     #history.txtに追加
     f = open('history.txt', 'a')
-    f.write(add+'\n')
+    f.write(add)
     f.close
 
 def set_history():
@@ -240,6 +240,47 @@ def change_string(next_num):
     string_button[next_num].configure(text='now selected')
     string_num = next_num
 
+def load_setting_file():
+    global string_num
+    filename = tk.filedialog.askopenfilename(filetypes = [('Text Files', '.txt')])
+    num = 0
+    try:
+        f = open(filename, 'r') 
+    except IOError:
+        return 0
+    for line in f.readlines():
+        set_list = line.split("|")
+        length.set(set_list[0])
+        density.set(set_list[1])
+        section_area.set(set_list[2])
+        tension.set(set_list[3])
+        d1.set(set_list[4])
+        d3.set(set_list[5])
+        young.set(set_list[6])
+        set_value(num)
+        num += 1
+        if num >= 6:
+           break 
+    get_value(string_num)
+
+def save_setting_file():
+    global length_value
+    global density_value
+    global section_area_value
+    global tension_value
+    global d1_value
+    global d3_value
+    global young_value
+    filename = tk.filedialog.asksaveasfilename(filetypes = [('Text Files', '.txt')])
+    #history.txtに追加
+    f = open(filename, 'w')
+    for num in range(6):
+        add = str(length_value[num]) + '|' + str(density_value[num]) + '|' + str(section_area_value[num]) + '|' + \
+                str(tension_value[num]) + '|' + str(d1_value[num]) + '|' + str(d3_value[num]) + '|' + \
+                str(young_value[num]) + '|' + str(moment_value[num]) + '\n'# + '|' + str(time)
+        f.write(add)
+    f.close
+
 ##############################################
 #GUI
 ##############################################
@@ -265,20 +306,6 @@ string_button[4].pack(side='left')
 string_button.append(tk.Button(fstring, text='select string6', command=lambda:change_string(5)))
 string_button[5].pack(side='left')
 
-'''
-string1_button = tk.Button(fstring, text='now selected', command=lambda:change_value(string_num))
-string1_button.pack(side='left')
-string2_button = tk.Button(fstring, text='select string2', command=call_play_movie)
-string2_button.pack(side='left')
-string3_button = tk.Button(fstring, text='select string3', command=call_play_movie)
-string3_button.pack(side='left')
-string4_button = tk.Button(fstring, text='select string4', command=call_play_movie)
-string4_button.pack(side='left')
-string5_button = tk.Button(fstring, text='select string5', command=call_play_movie)
-string5_button.pack(side='left')
-string6_button = tk.Button(fstring, text='select string6', command=call_play_movie)
-string6_button.pack(side='left')
-'''
 fstring.place(relwidth=1.0, relheight=0.05)
 
 string_num = 0 
@@ -403,14 +430,18 @@ history.configure(yscrollcommand = sb_his.set)
 label_his.place(relwidth=1.0, relheight=0.05)
 history.place(rely=0.05, relwidth=0.95, relheight=0.95)
 sb_his.place(relx=0.95, rely=0.05, relwidth=0.05, relheight=0.95)
-f1.place(relx=0.5, rely=0.05, relwidth=0.5, relheight=0.85)
+f1.place(relx=0.5, rely=0.05, relwidth=0.5, relheight=0.75)
 
 f2 = tk.Frame(root)
 set_history_button = tk.Button(f2, text='set', command=set_history)
-set_history_button.place(relwidth=0.5, relheight=1.0)
+set_history_button.place(relwidth=0.5, relheight=0.4)
 default_button = tk.Button(f2, text='default', command=set_default)
-default_button.place(relx=0.5,relwidth=0.5, relheight=1.0)
-f2.place(relx=0.5, rely=0.9, relwidth=0.5, relheight=0.1)
+default_button.place(relx=0.5,relwidth=0.5, relheight=0.4)
+load_setting_file_button = tk.Button(f2, text='load setting file', command=load_setting_file)
+load_setting_file_button.place(rely=0.4, relwidth=1.0, relheight=0.3)
+save_setting_file_button = tk.Button(f2, text='save setting file', command=save_setting_file)
+save_setting_file_button.place(rely=0.7, relwidth=1.0, relheight=0.3)
+f2.place(relx=0.5, rely=0.8, relwidth=0.5, relheight=0.2)
 
 init_history()
 
