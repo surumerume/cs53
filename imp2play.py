@@ -55,7 +55,7 @@ def draw():
         l = f.readline().replace('\n','').split(',')
         u_vec = np.asarray(l, dtype=np.float32)
         u_max = np.amax(u_vec)
-        u_min = np.amin(u_min)
+        u_min = np.amin(u_vec)
         l = []
         f.close()
         #時間更新
@@ -116,8 +116,8 @@ def init():
     glutInitWindowSize(640, 640)
     glutCreateWindow("Soundmaker")
     #-----表裏の表示管理-----#
-    glEnable(GL_CULL_FACE)
-    glCullFace(GL_BACK)
+    #glEnable(GL_CULL_FACE)
+    #glCullFace(GL_BACK)
     #-----視点光源設定-----#
     #glEnable(GL_LIGHTING)
     #glEnable(GL_LIGHT0)
