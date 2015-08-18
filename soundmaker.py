@@ -264,6 +264,7 @@ def load_setting_file():
     get_value(string_num)
 
 def save_setting_file():
+    global string_num
     global length_value
     global density_value
     global section_area_value
@@ -272,7 +273,7 @@ def save_setting_file():
     global d3_value
     global young_value
     filename = tk.filedialog.asksaveasfilename(filetypes = [('Text Files', '.txt')])
-    #history.txtに追加
+    set_value(string_num)
     f = open(filename, 'w')
     for num in range(6):
         add = str(length_value[num]) + '|' + str(density_value[num]) + '|' + str(section_area_value[num]) + '|' + \
