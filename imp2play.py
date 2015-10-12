@@ -36,6 +36,8 @@ def draw():
         #-----遅れている場合フレームを飛ばす-----
         if (now - time_start)/(1000.0/fps) >= 2:
             next_frame += int((now - time_start)/(1000.0/fps)) - 1
+            if next_frame>fps:
+                next_frame=fps
         #-----ファイル読み込み＆更新-----
         input_txt_file_name = input_folder_name + '/%04d.txt' % next_frame
         f = open(input_txt_file_name, 'r')
@@ -76,7 +78,7 @@ def draw():
         #光源設定
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        gluLookAt(10, 10, 10, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+        gluLookAt(0.5, 0.5, -3, 0.5, 0.5, 0.0, 0.0, 1.0, 0.0)
         #=====FEniCS描画=====
         glBegin(GL_TRIANGLES)
         for i in range(num_of_mesh):
@@ -85,13 +87,13 @@ def draw():
                 red = u_vec[meshdata[i][j]] / u_max
                 blue = (u_max - u_vec[meshdata[i][j]]) / (u_max - u_min)
                 glColor3d(red, 0, blue)
-                glVertex3f(coordinates[meshdata[i][j]][0],u_vec[meshdata[i][j]],coordinates[meshdata[i][j]][1])
+                glVertex3f(coordinates[meshdata[i][j]][0],coordinates[meshdata[i][j]][1],0)
         glEnd()
         #-----フレーム表示-----
         glColor4f(0.1, 0.1, 0.1, 0.5)
-        drawText('frame:' + str(next_frame),0.0,640.0-15)
-        drawText('fps:' + str(1000.0/fps_time),0.0,640.0-30)
-        drawText('time:' + str(next_frame/fps),0.0,640.0-45)
+        drawText('frame:' + str(next_frame),0.0,320.0-15)
+        drawText('fps:' + str(1000.0/fps_time),0.0,320.0-30)
+        drawText('time:' + str(next_frame/fps),0.0,320.0-45)
         glutSwapBuffers()
         redisplay_flag = 0
 
@@ -113,7 +115,7 @@ def init():
     #==========OpenGL初期設定==========#
     glutInit(sys.argv)
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_STENCIL)
-    glutInitWindowSize(640, 640)
+    glutInitWindowSize(320, 320)
     glutCreateWindow("Soundmaker")
     #-----表裏の表示管理-----#
     #glEnable(GL_CULL_FACE)
@@ -122,7 +124,7 @@ def init():
     #glEnable(GL_LIGHTING)
     #glEnable(GL_LIGHT0)
     #glEnable(GL_LIGHT1)
-    reshape(640,640)
+    reshape(320,320)
     #-----光源設定-----#
     #green = np.array([0.0,1.0,0.0,1.0])
     #glLightfv(GL_LIGHT1,GL_DIFFUSE,green)
