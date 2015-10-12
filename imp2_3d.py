@@ -3,8 +3,8 @@ import numpy as np
 
 # Create mesh and define function space
 #mesh = UnitSquareMesh(6, 4)
-#mesh = UnitCubeMesh(6, 4, 5)
-mesh = Mesh("test3.xml.gz")
+mesh = UnitCubeMesh(6, 4, 5)
+#mesh = Mesh("test3.xml.gz")
 V = FunctionSpace(mesh, 'Lagrange', 1)
 
 alpha = 3 
@@ -48,13 +48,6 @@ t = dt
 #output
 count = 0
 output_txt_file_name = 'result/%04d.txt' % count
-'''
-for (i, cell) in enumerate(cells(V.mesh())):
-    print "Global dofs associated with cell %d: " % i,
-    print V.dofmap().cell_dofs(i)
-    print "The Dof coordinates:",
-    print V.dofmap().tabulate_coordinates(cell)
-'''
 
 def outputData(output_txt_file_name, cells,coordinates,u_vec,dof_to_vertex_map_values):
     f = open(output_txt_file_name, 'a')
@@ -80,40 +73,6 @@ def outputData(output_txt_file_name, cells,coordinates,u_vec,dof_to_vertex_map_v
     text = ','.join(map(str,l)) 
     f.write(text+'\n')
     f.close()
-
-'''
-outputData(output_txt_file_name, mesh.cells(), mesh.coordinates(), u_1.vector().array(), dof_to_vertex_map(V))
-print dof_to_vertex_map(V)
-dtv = dof_to_vertex_map(V)
-vtd = vertex_to_dof_map(V)
-'''
-
-'''
-coords = mesh.coordinates()
-x = u_1.vector()
-dofs_at_vertices = x[dof_to_vertex_map(V)]
-
-# let's iterate over vertices
-for v in vertices(mesh):
-    print 'vertex index', v.index()
-    print 'at point', v.point().str()
-    print 'at coordinates', coords[v.index()]
-    print 'dof', dofs_at_vertices[v.index()]
-'''
-
-'''
-u_vec = u_1.vector().array()
-X = V.dofmap().tabulate_all_coordinates(mesh)
-X.resize((V.dim(), 2))
-
-print 'dof index | dof coordinate |  dof value'
-for i, (x, v) in enumerate(zip(X, u_vec)):
-    print i, x, v, dtv[i], u_vec[dtv[i]]
-
-#print V.dofmap().cell_dofs()
-
-File("0000.xml") << u_1
-'''
 
 while t <= T:
     b = assemble(L)
