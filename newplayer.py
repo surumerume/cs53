@@ -68,7 +68,7 @@ def draw():
         gluLookAt(0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
         #===========弦の描画==========
         #物体拡大
-        glScalef(size,size,size)
+        glScalef(size*1.1,size*1.1,size*1.1)
         #物体回転
         glRotatef(phi, 0.0, 0.0, 1.0)
         glRotatef(psi, 0.0, 1.0, 0.0)
@@ -153,7 +153,16 @@ def draw():
         glLoadIdentity()
         gluLookAt(0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
         #物体拡大
-        glScalef(size*0.01,size*0.01,size*0.01)
+        glScalef(size*0.003,size*0.003,size*0.003)
+        glTranslatef(-300.0,40.0,-100.0) 
+        #物体回転
+        glRotatef(phi-90, 0.0, 0.0, 1.0)
+        glRotatef(psi, 0.0, 1.0, 0.0)
+        glRotatef(90, 1.0, 0.0, 0.0)
+        glLightfv(GL_LIGHT0,GL_POSITION,light0pos)
+        #材質設定
+        param_string = np.array([0.7,0.5,0.2,1.0])
+        glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,param_string)
         draw_guitar()
         #-----フレーム表示-----
         glColor4f(0.1, 0.1, 0.1, 0.5)
@@ -168,16 +177,25 @@ def draw_guitar():
     global meshdata, coordinates, u_vec, u_max, u_min
     global num_of_mesh
     #=====FEniCS描画=====
+    #法線ベクトル自動正規化
+    glEnable(GL_NORMALIZE)
     glBegin(GL_TRIANGLES)
     for i in range(num_of_mesh):
         for j in range(4): #三角錘
+            #法線ベクトル
+            v1 = coordinates[meshdata[i][(j+1)%4]] - coordinates[meshdata[i][j%4]]
+            v2 = coordinates[meshdata[i][(j+2)%4]] - coordinates[meshdata[i][(j+1)%4]]
+            normal = np.cross(v1,v2)
+            glNormal3f(normal[0],normal[1],normal[2])
             for k in range(3):
                 #ポリゴン描画
                 red = u_vec[meshdata[i][j]] / u_max
                 blue = (u_max - u_vec[meshdata[i][j]]) / (u_max - u_min)
-                glColor3d(red, 0, blue)
+                #glColor3d(red, 0, blue)
                 glVertex3f(coordinates[meshdata[i][(k+j)%4]][0],coordinates[meshdata[i][(k+j)%4]][1],coordinates[meshdata[i][(k+j)%4]][2])
     glEnd()
+    #法線ベクトル自動正規化終わり
+    glDisable(GL_NORMALIZE)
 
 def draw_string(u, first_center, last_center):
     global circle_num
@@ -348,8 +366,8 @@ def init():
     glutInitWindowSize(640, 640)
     glutCreateWindow("Soundmaker")
     #-----表裏の表示管理-----#
-    glEnable(GL_CULL_FACE)
-    glCullFace(GL_BACK)
+    #glEnable(GL_CULL_FACE)
+    #glCullFace(GL_BACK)
     #-----視点光源設定-----#
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
