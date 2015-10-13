@@ -64,25 +64,25 @@ def draw():
         glEnable(GL_DEPTH_TEST)
         #光源設定
         glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        gluLookAt(0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
         #===========弦の描画==========
-        #物体拡大
-        glScalef(size*1.1,size*1.1,size*1.1)
-        #物体回転
-        glRotatef(phi, 0.0, 0.0, 1.0)
-        glRotatef(psi, 0.0, 1.0, 0.0)
-        glLightfv(GL_LIGHT0,GL_POSITION,light0pos)
-        #材質設定
-        param_string = np.array([0.7,0.5,0.2,1.0])
-        glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,param_string)
-        #glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,red)
+        for num in range(string_num):
+            glLoadIdentity()
+            gluLookAt(0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+            glTranslatef(-0.15,-0.02+0.01*num,0.0) 
+            #物体拡大
+            glScalef(size,size,size)
+            #物体回転
+            glRotatef(phi, 0.0, 0.0, 1.0)
+            glRotatef(psi, 0.0, 1.0, 0.0)
+            glLightfv(GL_LIGHT0,GL_POSITION,light0pos)
+            #材質設定
+            param_string = np.array([0.7,0.5,0.2,1.0])
+            glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,param_string)
+            #glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,red)
+            #弦の描画
+            draw_string(u[num][next_frame-1],first_center[num],last_center[num])
         #行列プッシュ(弦の設定をpush)
         glPushMatrix()
-        #弦の描画
-        for num in range(string_num):
-            glTranslatef(0.0,0.05,0.0) 
-            draw_string(u[num][next_frame-1],first_center[num],last_center[num])
         #==========床描画==========
         #[memo]
         #法線(a,b,c)で点P(x0,y0,z0)を通る平面の方程式はax+by+cz+d=0とかける
@@ -106,7 +106,7 @@ def draw():
         glStencilFunc( GL_ALWAYS, 1, ~0) #常に通過
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE) #glStencilFuncの第二引数で置き換え
         #床描画
-        draw_floor(0)
+        #draw_floor(0)
         #==========影の描画==========
         #[memo]
         #床の部分（ステンシルバッファ1）のところに
@@ -133,7 +133,7 @@ def draw():
         glDisable(GL_DEPTH_TEST)
         for num in range(string_num):
             glTranslatef(0.0,0.05,0.0) 
-            draw_string(u[num][next_frame-1],first_center[num],last_center[num])
+            #draw_string(u[num][next_frame-1],first_center[num],last_center[num])
         glEnable(GL_DEPTH_TEST)
         #ビットマスクを解除
         glColorMask(1,1,1,1)
@@ -146,29 +146,32 @@ def draw():
         glStencilFunc(GL_EQUAL, 2, ~0)
         glDisable(GL_DEPTH_TEST)
         #床描画
-        draw_floor(1)
+        #draw_floor(1)
         glEnable(GL_DEPTH_TEST)
         glDisable(GL_STENCIL_TEST)
         #===ギターボディ描画===
         glLoadIdentity()
         gluLookAt(0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+        glTranslatef(-0.65,0.0,-0.1) 
         #物体拡大
-        glScalef(size*0.003,size*0.003,size*0.003)
-        glTranslatef(-300.0,40.0,-100.0) 
+        glScalef(size*0.001,size*0.001,size*0.001)
         #物体回転
-        glRotatef(phi-90, 0.0, 0.0, 1.0)
-        glRotatef(psi, 0.0, 1.0, 0.0)
+        glRotatef(-90, 0.0, 0.0, 1.0)
         glRotatef(90, 1.0, 0.0, 0.0)
+        glRotatef(phi, 0.0, 0.0, 1.0)
+        glRotatef(psi, 0.0, 1.0, 0.0)
         glLightfv(GL_LIGHT0,GL_POSITION,light0pos)
         #材質設定
-        param_string = np.array([0.7,0.5,0.2,1.0])
+        param_string = np.array([0.6,0.2,0.0,1.0])
         glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE,param_string)
         draw_guitar()
         #-----フレーム表示-----
         glColor4f(0.1, 0.1, 0.1, 0.5)
+        '''
         drawText('frame:' + str(next_frame),0.0,640.0-15)
         drawText('fps:' + str(1000.0/fps_time),0.0,640.0-30)
         drawText('time:' + str(next_frame/fps),0.0,640.0-45)
+        '''
         glutSwapBuffers()
         redisplay_flag = 0
 
@@ -176,6 +179,7 @@ def draw():
 def draw_guitar():
     global meshdata, coordinates, u_vec, u_max, u_min
     global num_of_mesh
+    global light0pos
     #=====FEniCS描画=====
     #法線ベクトル自動正規化
     glEnable(GL_NORMALIZE)
@@ -186,6 +190,9 @@ def draw_guitar():
             v1 = coordinates[meshdata[i][(j+1)%4]] - coordinates[meshdata[i][j%4]]
             v2 = coordinates[meshdata[i][(j+2)%4]] - coordinates[meshdata[i][(j+1)%4]]
             normal = np.cross(v1,v2)
+            light = light0pos[0:3]
+            if np.dot(normal,light - coordinates[meshdata[i][j%4]]) < 0:
+                    normal = -normal
             glNormal3f(normal[0],normal[1],normal[2])
             for k in range(3):
                 #ポリゴン描画
