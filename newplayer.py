@@ -196,8 +196,8 @@ def draw_guitar():
             glNormal3f(normal[0],normal[1],normal[2])
             for k in range(3):
                 #ポリゴン描画
-                red = u_vec[meshdata[i][j]] / u_max
-                blue = (u_max - u_vec[meshdata[i][j]]) / (u_max - u_min)
+                #red = u_vec[meshdata[i][j]] / u_max
+                #blue = (u_max - u_vec[meshdata[i][j]]) / (u_max - u_min)
                 #glColor3d(red, 0, blue)
                 glVertex3f(coordinates[meshdata[i][(k+j)%4]][0],coordinates[meshdata[i][(k+j)%4]][1],coordinates[meshdata[i][(k+j)%4]][2])
     glEnd()
@@ -373,8 +373,8 @@ def init():
     glutInitWindowSize(640, 640)
     glutCreateWindow("Soundmaker")
     #-----表裏の表示管理-----#
-    #glEnable(GL_CULL_FACE)
-    #glCullFace(GL_BACK)
+    glEnable(GL_CULL_FACE)
+    glCullFace(GL_BACK)
     #-----視点光源設定-----#
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
@@ -487,7 +487,7 @@ def main(foldername):
         wav_file.append(pygame.mixer.Sound(input_wav_file_name))
         wav_file[num].set_volume(0.1)
         #-----ファイル読み込み＆更新-----
-        input_txt_file_name = 'guitar.txt'
+        input_txt_file_name = 'guitar2.txt'
         f = open(input_txt_file_name, 'r')
         #======ここからFEniCSのデータ読み込み=====
         #メッシュのデータ
@@ -501,12 +501,14 @@ def main(foldername):
         coordinates = np.asarray(l, dtype=np.float32)
         coordinates = np.reshape(coordinates, (len(l)/3,3))
         l = []
+        '''
         #各点のデータ
         l = f.readline().replace('\n','').split(',')
         u_vec = np.asarray(l, dtype=np.float32)
         u_max = np.amax(u_vec)
         u_min = np.amin(u_vec)
         l = []
+        '''
         f.close()
     #==========変数設定==========#
     prev_mouse = np.zeros( (2) ) #マウスの座標記憶用
