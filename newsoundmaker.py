@@ -1,5 +1,6 @@
 #!i/usr/bin/env python
 # -*- coding: UTF-8 -*-
+#newplayer呼び出し用soundmaker
 
 import Tkinter as tk
 #import pyglet
@@ -10,6 +11,8 @@ import sys
 import subprocess
 import time
 import numpy as np
+from PIL import Image
+from PIL import ImageOps
 
 def call_play_movie():
     global string_num
@@ -80,12 +83,14 @@ def simulate(foldername,num):
             tension_value[num],d1_value[num],d3_value[num],young_value[num],moment_value[num])
     #fem.make_u_graph()
     fem.calc_energy()
+    fem.calc_tension()
     fem.set_fps(fps)
     fem.output_txt_result()
     #メインループ
     while step<rate*tmax-1: 
         step = fem.simulate_one_step()
         fem.calc_energy()
+        fem.calc_tension()
         if step%(rate/fps) == 0:
             fem.output_txt_result()
             #fem.make_u_graph()
@@ -97,6 +102,7 @@ def simulate(foldername,num):
     #fem.make_u_graph()
     fem.make_energy_graph()
     #fem.make_wav_graph()
+    fem.output_tension()
     fem.output_wav()
     fem.output_txt_result()
     #femwave.make_movie(foldername)

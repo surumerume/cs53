@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 #python player.py foldername
 #foldername内のresult.txtからOpenGLで動画表示
+#ギターボディの描画を加えたnew version（ベータ版）
 
 import os
 import sys
@@ -34,6 +35,7 @@ def draw():
     #初期待ち時間(player立ち上がり時間考慮)
     wait_time = 500
     #==========フレーム更新|データ読み込み処理==========
+    '''
     now = glutGet(GLUT_ELAPSED_TIME)
     if next_frame == 0 and now < wait_time:
         time_start = now
@@ -54,6 +56,7 @@ def draw():
             next_frame += 1
         elif next_frame < fps:
             next_frame += 1
+    '''
     #=====描画処理=====
     if redisplay_flag == 1:
         #==========OpenGL==========
@@ -83,6 +86,7 @@ def draw():
             draw_string(u[num][next_frame-1],first_center[num],last_center[num])
         #行列プッシュ(弦の設定をpush)
         glPushMatrix()
+        '''
         #==========床描画==========
         #[memo]
         #法線(a,b,c)で点P(x0,y0,z0)を通る平面の方程式はax+by+cz+d=0とかける
@@ -149,6 +153,7 @@ def draw():
         #draw_floor(1)
         glEnable(GL_DEPTH_TEST)
         glDisable(GL_STENCIL_TEST)
+        '''
         #===ギターボディ描画===
         glLoadIdentity()
         gluLookAt(0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
@@ -167,13 +172,12 @@ def draw():
         draw_guitar()
         #-----フレーム表示-----
         glColor4f(0.1, 0.1, 0.1, 0.5)
-        '''
         drawText('frame:' + str(next_frame),0.0,640.0-15)
-        drawText('fps:' + str(1000.0/fps_time),0.0,640.0-30)
-        drawText('time:' + str(next_frame/fps),0.0,640.0-45)
-        '''
+        drawText('time:' + str(next_frame/fps),0.0,640.0-30)
+        #drawText('fps:' + str(1000.0/fps_time),0.0,640.0-45)
         glutSwapBuffers()
         redisplay_flag = 0
+        #capture()
 
 
 def draw_guitar():
@@ -345,10 +349,13 @@ def motion(x, y):
 def keyboard(key, x, y):
     global size
     global redisplay_flag
+    global next_frame
     if key == GLUT_KEY_UP:
         size += 0.01
     if key == GLUT_KEY_DOWN and size > 0.0:
         size -= 0.01
+    if key == GLUT_KEY_RIGHT:
+        next_frame = next_frame+2
     redisplay_flag = 1
     glutPostRedisplay()
 
@@ -373,8 +380,8 @@ def init():
     glutInitWindowSize(640, 640)
     glutCreateWindow("Soundmaker")
     #-----表裏の表示管理-----#
-    glEnable(GL_CULL_FACE)
-    glCullFace(GL_BACK)
+    #glEnable(GL_CULL_FACE)
+    #glCullFace(GL_BACK)
     #-----視点光源設定-----#
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
@@ -422,7 +429,21 @@ def drawText(value, x, y):
     glWindowPos2f(x,y)
     for character in value:
         glutBitmapCharacter(GLUT_BITMAP_9_BY_15, ord(character))
-    
+
+def capture():
+    global next_frame
+    width = glutGet(GLUT_WINDOW_WIDTH)
+    height = glutGet(GLUT_WINDOW_HEIGHT)
+    # キャプチャ
+    #glReadBuffer(GL_FRONT)
+    #glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+    data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
+    # 画像を保存
+    image = Image.fromstring("RGBA", (width, height), data)
+    image = ImageOps.flip(image) # 上下反転
+    image.save("image/" + str(next_frame-1).zfill(4))
+    #up.write_png('png/' + str(step+1).zfill(4))
+
 def main(foldername):
     global circle_num
     global first_center, last_center, u
@@ -518,7 +539,7 @@ def main(foldername):
     time_start=0
     fps_time = 1.0
     size = 1.0
-    redisplay_flag = 0
+    redisplay_flag = 1 
     light0pos = np.array([0.0,0.5,0.5,1.0])
     floor_normal_vec = np.array([0.0,1.0,0.0])
     #移動する座標

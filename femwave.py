@@ -28,7 +28,7 @@ class Femwave:
         self.d3=d3
         self.young=young
         self.moment=moment
-
+        #その他設定
         self.M=31 #節点の数
         self.h=length/(self.M-1) #幅
         self.slop=1.0/self.h
@@ -42,9 +42,8 @@ class Femwave:
         #グラフ関連
         self.graph_num=0
         self.fig = plt.figure()
-
-        #係数行列の計算
-        ###行列
+        #===係数行列の計算===#
+        #---行列---#
         #ハット関数の積分結果格納用
         self.Ma = np.zeros( (self.M,self.M) )     #M*M 微分,微分なし
         self.Mb = np.zeros( (self.M,self.M) )     #M*M 微分なし,微分
@@ -56,8 +55,7 @@ class Femwave:
         self.M6 = np.zeros( (self.M-2,self.M) )   #(M-2)*M 微分なし,微分
         self.co_left = np.zeros( (self.size,self.size) )     #左辺(n+1)の係数行列
         self.co_right = np.zeros( (self.size,self.size) )    #右辺(n)の係数行列
-
-        ###積分計算
+        #---積分計算---#
         #(M)*(M)
         for i in range(self.M):
             for j in range(self.M):
@@ -91,7 +89,6 @@ class Femwave:
         self.M4[:,:] = self.Ma[0:self.M,1:self.M-1] 
         self.M5[:,:] = self.Mb[0:self.M,1:self.M-1]
         self.M6[:,:] = self.Mb[1:self.M-1,0:self.M]
-
         #係数
         co1 = -(self.young*self.moment)/(self.density*self.section_area) 
         co2 = self.tension/(2.0*self.density*self.section_area) 
@@ -115,7 +112,7 @@ class Femwave:
         # |   -M5         0       0       0       0       0    |
         # |    0          0       0       0       0       0    |
         # |    M5         0       0       0       0       0    |
-        ###左辺右辺係数行列計算
+        #---左辺右辺係数行列計算---#
         for i in range(self.size):
             for j in range(self.size):
                 if i<(self.M-2): #1行目
@@ -159,26 +156,24 @@ class Femwave:
                         self.co_left[i][j] = -self.M3[i-(5*(self.M-2)+4)][j-(5*(self.M-2)+4)]
                 else:
                    print("error")
-
         #その他行列
         self.uvn = np.zeros( (self.size) )               #右辺のベクトルuとvの(n)
         self.right = np.zeros( (self.size) )             #右辺計算結果 
         self.un = np.zeros( (self.M) )                  #グラフ出力用
         self.wav_data = np.zeros( (self.tmax*self.rate) )    #wav書き出し用
         self.energy = np.zeros( (self.tmax*self.rate) )      #エネルギー
-        self.time = np.zeros( (self.tmax*self.rate) )      #エネルギー
+        self.time = np.zeros( (self.tmax*self.rate) )      #時間
+        self.tension_log = np.zeros( (self.tmax*self.rate) ) #張力
         self.x = np.zeros( (self.M) )
-        
         ###u初期値設定
         for i in range(self.M-2):
-            self.uvn[i] = exp(-100*((i+1)*self.h-self.length/2)*((i+1)*self.h-self.length/2))/50.0
+            self.uvn[i] = exp(-50*((i+1)*self.h-self.length/5)*((i+1)*self.h-self.length/5))/10.0
         for i in range(self.M):
             self.x[i] = i*self.h
-        
         self.un[1:self.M-1] = self.uvn[:self.M-2]
+        self.time[0] = self.t 
         #wav_data
         self.wav_data[self.step] = self.un[self.M/2]
-
         #self.make_u_graph()
         #self.calc_energy()
 
@@ -196,24 +191,8 @@ class Femwave:
         #時間進行
         self.t += self.dt
         self.step += 1
-
-        return self.step
-
-    #エネルギー計算
-    def calc_energy(self):
-        eun = np.zeros( (self.M-2) )                   #エネルギー出力用
-        v = np.zeros( (self.M-2) )                     #エネルギー出力用
-        du = np.zeros( (self.M) )                  #エネルギー出力用
-        ddu = np.zeros( (self.M-2) )                   #エネルギー出力用
-
-        #エネルギー
-        eun[:] = self.uvn[:self.M-2]
-        v[:] = self.uvn[self.M-2:2*(self.M-2)]
-        du = np.linalg.solve(self.M3,np.dot(self.M5,eun))
-        ddu = np.linalg.solve(self.M1,np.dot(self.M6,du))
-        self.energy[self.step] = np.dot(np.dot(self.M1,v),v)/2.0 + np.dot(np.dot(self.M3,du),du)*self.tension/(self.density*self.section_area*2.0) + np.dot(np.dot(self.M1,ddu),ddu)*self.young*self.moment/(self.density*self.section_area*2.0)
         self.time[self.step] = self.step*self.dt
-        #print ("{0}".format(energy[i]))
+        return self.step
 
     #uの変位を出力する関数
     def make_u_graph(self,visual_mode=1):
@@ -245,6 +224,20 @@ class Femwave:
         self.fig.clf()
         self.graph_num += 1
 
+    #エネルギー計算
+    def calc_energy(self):
+        eun = np.zeros( (self.M-2) )              #現在のu
+        v = np.zeros( (self.M-2) )                #現在のv
+        du = np.zeros( (self.M) )                 #du
+        ddu = np.zeros( (self.M-2) )              #ddu
+        #エネルギー
+        eun[:] = self.uvn[:self.M-2]
+        v[:] = self.uvn[self.M-2:2*(self.M-2)]
+        du = np.linalg.solve(self.M3,np.dot(self.M5,eun))
+        ddu = np.linalg.solve(self.M1,np.dot(self.M6,du))
+        self.energy[self.step] = np.dot(np.dot(self.M1,v),v)/2.0 + np.dot(np.dot(self.M3,du),du)*self.tension/(self.density*self.section_area*2.0) + np.dot(np.dot(self.M1,ddu),ddu)*self.young*self.moment/(self.density*self.section_area*2.0)
+        #print ("{0}".format(energy[i]))
+
     def make_energy_graph(self):
         #エネルギーのグラフ
         ax1 = self.fig.add_subplot(111)
@@ -257,6 +250,26 @@ class Femwave:
         output_png_file_name = self.foldername + "/energy.png" 
         self.fig.savefig(output_png_file_name) 
         self.fig.clf()
+
+    #張力計算
+    def calc_tension(self):
+        #deltaL計算
+        deltaL = 0.0
+        tun = np.zeros( (self.M) ) #現在のu
+        tun[1:self.M-1] = self.uvn[:self.M-2]
+        for i in range(self.M-1):
+            deltaL += sqrt(self.h**2+(tun[i+1]-tun[i])**2)
+        deltaL = deltaL - self.length
+        #張力
+        self.tension_log[self.step] = self.tension + self.young*self.section_area*deltaL/self.length 
+
+    #張力出力
+    def output_tension(self):
+        output_txt_file_name = self.foldername + '/tension_log.txt'
+        f = open(output_txt_file_name, 'a')
+        for i in range(self.tension_log.size):
+            f.write(str(self.tension_log[i])+'\n')
+        f.close
 
     def make_wav_graph(self):
         #wavのグラフ
@@ -278,7 +291,7 @@ class Femwave:
         output_wav_file_name = self.foldername + "/result.wav"
         scipy.io.wavfile.write(output_wav_file_name,self.rate,self.wav_data)
 
-    #OpenGLを使うために座標データを吐き出しておこう関数
+    #OpenGLを使うために座標データを吐き出しておく関数
     def output_txt_result(self):
         circle_num=6
         #=====設定ファイル出力=====

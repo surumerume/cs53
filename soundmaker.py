@@ -1,6 +1,7 @@
 #!i/usr/bin/env python
+# -*- coding: UTF-8 -*-
 
-import tkinter as tk
+import Tkinter as tk
 #import pyglet
 from femwave import Femwave
 import femwave
@@ -38,7 +39,7 @@ def call_play_movie():
     ###############
     #メモ
     #shellから別のプログラムを呼んでそこからGLUTの処理を行えばよい
-    #巻き添え終了阻止
+    #巻き添え終了防止
     ###############
     #ffmpeg命令
     cmdstring = ('python', 'player.py', foldername[0],foldername[1],foldername[2],foldername[3],foldername[4],foldername[5])
@@ -79,12 +80,14 @@ def simulate(foldername,num):
             tension_value[num],d1_value[num],d3_value[num],young_value[num],moment_value[num])
     #fem.make_u_graph()
     fem.calc_energy()
+    fem.calc_tension()
     fem.set_fps(fps)
     fem.output_txt_result()
     #メインループ
     while step<rate*tmax-1: 
         step = fem.simulate_one_step()
         fem.calc_energy()
+        fem.calc_tension()
         if step%(rate/fps) == 0:
             fem.output_txt_result()
             #fem.make_u_graph()
@@ -96,6 +99,7 @@ def simulate(foldername,num):
     #fem.make_u_graph()
     fem.make_energy_graph()
     #fem.make_wav_graph()
+    fem.output_tension()
     fem.output_wav()
     fem.output_txt_result()
     #femwave.make_movie(foldername)
