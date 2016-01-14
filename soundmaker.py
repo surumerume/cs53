@@ -3,8 +3,8 @@
 
 import Tkinter as tk
 #import pyglet
-from femwave import Femwave
-import femwave
+from femwave2 import Femwave
+import femwave2
 import os
 import sys
 import subprocess
@@ -78,26 +78,27 @@ def simulate(foldername,num):
     #初期設定（とゼロステップ目出力）
     fem = Femwave(foldername,rate,length_value[num],density_value[num],section_area_value[num],
             tension_value[num],d1_value[num],d3_value[num],young_value[num],moment_value[num])
-    #fem.make_u_graph()
-    fem.calc_energy()
+    fem.make_u_graph()
+    #エネルギー未対応
+    #fem.calc_energy()
     fem.calc_tension()
     fem.set_fps(fps)
     fem.output_txt_result()
     #メインループ
     while step<rate*tmax-1: 
         step = fem.simulate_one_step()
-        fem.calc_energy()
+        #fem.calc_energy()
         fem.calc_tension()
         if step%(rate/fps) == 0:
             fem.output_txt_result()
-            #fem.make_u_graph()
+            fem.make_u_graph()
             per = str(step/rate*100)
             #ボタンラベル変更
             #play_movie_button.configure(text=per + '%')
             #f0.update
     #その他ファイル出力 
-    #fem.make_u_graph()
-    fem.make_energy_graph()
+    fem.make_u_graph()
+    #fem.make_energy_graph()
     #fem.make_wav_graph()
     fem.output_tension()
     fem.output_wav()

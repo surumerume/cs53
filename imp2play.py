@@ -17,7 +17,7 @@ def draw():
     global next_frame
     global time_start
     global u
-    global meshdata, coordinates, u_vec
+    global meshdata, coordinates, u_vec, u_max, u_min
     global num_of_mesh
     global phi, psi #物体回転用
     global input_folder_name
@@ -25,7 +25,6 @@ def draw():
     global light0pos
     global fps, fps_time
     global redisplay_flag
-    global u_max, u_min
     #初期待ち時間(player立ち上がり時間考慮)
     wait_time = 500
     #==========フレーム更新|データ読み込み処理==========
