@@ -167,7 +167,7 @@ class Femwave:
         self.x = np.zeros( (self.M) )
         ###u初期値設定
         for i in range(self.M-2):
-            self.uvn[i] = exp(-50*((i+1)*self.h-self.length/5)*((i+1)*self.h-self.length/5))/10.0
+            self.uvn[i] = exp(-50*((i+1)*self.h-self.length/5)*((i+1)*self.h-self.length/5))/50.0
         for i in range(self.M):
             self.x[i] = i*self.h
         self.un[1:self.M-1] = self.uvn[:self.M-2]
