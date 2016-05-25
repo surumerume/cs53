@@ -89,7 +89,7 @@ while t <= T:
     #output
     count += 1 
     output_txt_file_name = 'result/%04d.txt' % count
-    #outputData(output_txt_file_name, mesh.cells(), mesh.coordinates(), u_1.vector().array())#, dof_to_vertex_map(V))
+    outputData(output_txt_file_name, mesh.cells(), mesh.coordinates(), u_1.vector().array())#, dof_to_vertex_map(V))
 
     # Plot solution and mesh
     plot(u_1)

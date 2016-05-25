@@ -2,7 +2,8 @@ from dolfin import *
 import numpy as np
 
 # Create mesh and define function space
-mesh = UnitSquareMesh(6, 4)
+#mesh = UnitSquareMesh(6, 4)
+mesh = Mesh("plane.xml")
 #mesh = UnitCubeMesh(6, 4, 5)
 V = FunctionSpace(mesh, 'Lagrange', 1)
 

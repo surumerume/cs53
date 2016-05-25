@@ -185,6 +185,12 @@ def draw_guitar():
     global num_of_mesh
     global light0pos
     #=====FEniCS描画=====
+    xmax = -999.9
+    xmin = 999.9
+    ymax = -999.9
+    ymin = 999.9
+    zmax = -999.9
+    zmin = 999.9
     #法線ベクトル自動正規化
     glEnable(GL_NORMALIZE)
     glBegin(GL_TRIANGLES)
@@ -204,7 +210,27 @@ def draw_guitar():
                 #blue = (u_max - u_vec[meshdata[i][j]]) / (u_max - u_min)
                 #glColor3d(red, 0, blue)
                 glVertex3f(coordinates[meshdata[i][(k+j)%4]][0],coordinates[meshdata[i][(k+j)%4]][1],coordinates[meshdata[i][(k+j)%4]][2])
+                if coordinates[meshdata[i][(k+j)%4]][0] > xmax:
+                    xmax = coordinates[meshdata[i][(k+j)%4]][0]
+                if coordinates[meshdata[i][(k+j)%4]][0] < xmin:
+                    xmin = coordinates[meshdata[i][(k+j)%4]][0]
+                if coordinates[meshdata[i][(k+j)%4]][1] > ymax:
+                    ymax = coordinates[meshdata[i][(k+j)%4]][1]
+                if coordinates[meshdata[i][(k+j)%4]][1] < ymin:
+                    ymin = coordinates[meshdata[i][(k+j)%4]][1]
+                if coordinates[meshdata[i][(k+j)%4]][2] > zmax:
+                    zmax = coordinates[meshdata[i][(k+j)%4]][2]
+                if coordinates[meshdata[i][(k+j)%4]][2] < zmin:
+                    zmin = coordinates[meshdata[i][(k+j)%4]][2]
     glEnd()
+    f = open('size.txt', 'a')
+    f.write('xmax:'+str(xmax)+'\n')
+    f.write('xmin:'+str(xmin)+'\n')
+    f.write('ymax:'+str(ymax)+'\n')
+    f.write('ymin:'+str(ymin)+'\n')
+    f.write('zmax:'+str(zmax)+'\n')
+    f.write('zmin:'+str(zmin)+'\n')
+    f.close()
     #法線ベクトル自動正規化終わり
     glDisable(GL_NORMALIZE)
 

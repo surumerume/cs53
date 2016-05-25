@@ -1,7 +1,9 @@
 #!i/usr/bin/env python
 # -*- coding: UTF-8 -*-
+#張力ひとつ前との差分版
 from dolfin import *
 import numpy as np
+import scipy.io.wavfile
 #from petsc4py import PETSc
 #from mpi4py import MPI
 
@@ -24,6 +26,7 @@ Vb  = Vb_a*Vb_b
 t=0.0 #初期時刻
 tmax=1.0 #終了時刻
 rate=44100 #サンプリングレート
+wav_data = np.zeros( (tmax*rate) )    #wav書き出し用
 dt=1.0/rate #時間刻み
 #dt = 0.60*mesh.hmin()
 print(dt)
@@ -41,6 +44,8 @@ while line:
     line = f.readline()
 tension_log = np.asarray(l, dtype=np.float32)
 f.close
+
+f = open('wave_log.txt', 'w')
 
 def boundary(x, on_boundary):
     return on_boundary
@@ -61,59 +66,7 @@ class VolumeInitialCondition(Expression):
     def value_shape(self):
         return (2,)
 
-#弦の初期値設定(おまじない)
-class VolumeInitialCondition2(Expression):
-    def eval(self, value, x):
-        #value[1] = 0.0
-        value[1] = exp(-50*(x[0]-0.5)**2)/50.0
-        #self.uvn[i] = exp(-50*((i+1)*self.h-self.length/5)*((i+1)*self.h-self.length/5))/50.0
-        value[0] = 0.0
-    def value_shape(self):
-        return (2,)
-
 dbc = DirichletBC(Vs, Constant(("0.", "0.")), boundary)
-
-'''
-#===弦のシミュレーション===#
-(vs, us)     = TrialFunctions(Vs)
-(psis, phis) = TestFunctions(Vs)
-
-ws_prev = interpolate(VolumeInitialCondition2(), Vs)
-vs_prev, us_prev = ws_prev.split()
-
-#up = plot(us_prev)
-up = plot(us_prev, range_min=-0.025, range_max=0.025)
-interactive()
-
-lhss1 = (2.0*us-dt*vs)*phis*dx
-rhss1 = (2.0*us_prev+dt*vs_prev)*phis*dx
-lhss2 = 2.0*vs*psis*dx + dt*inner(grad(us), grad(psis))*dx + dt*inner(grad(grad(us)),grad(grad(psis)))*dx
-rhss2 = 2.0*vs_prev*psis*dx - dt*inner(grad(us_prev), grad(psis))*dx - dt*inner(grad(grad(us_prev)),grad(grad(psis)))*dx
-
-for step in range(44100):
-    # assemble forms and solve
-    As = assemble(lhss1 + lhss2)
-    bs = assemble(rhss1 + rhss2)
-    dbc.apply(As)
-    dbc.apply(bs)
-    ws = Function(Vs)
-    solve(As, ws.vector(), bs)
-    # store previous values, increment time step
-    t += dt
-    vst, ust = ws.split(deepcopy = True)
-    vs_prev.assign(vst)
-    us_prev.assign(ust)
-    # save information
-    wave = ws.split()[1]
-    wave.rename("WaveFunction", wave.name())
-    #output_file << (wave, t)
-    if((step+1)%2000==0):
-        print(step+1)
-        #up = plot(us_prev)#, range_min=-0.1, range_max=1.2)
-        up = plot(us_prev, range_min=-0.025, range_max=0.025)
-        #up.write_png('png/' + str(step/1000+1).zfill(4)) # + '_' + str(mpiRank))
-        interactive()
-'''
 
 #===ボディのシミュレーション===#
 #u0 = 1/100 * x[0]*x[0] + alpha*x[1]*x[1]
@@ -128,14 +81,18 @@ T0 = Expression('exp(-0.001*((x[0]-0.0)*(x[0]-0.0)+(x[1]-100.0)*(x[1]-100.0)+(x[
 
 wb_prev = interpolate(VolumeInitialCondition(), Vb)
 vb_prev, ub_prev = wb_prev.split()
+wav_data[0] = wb_prev.vector().array()[3128*2]
+f.write(str(wav_data[0])+'\n')
 #T1 = interpolate(T0, Vb)
 T1 = interpolate(T0, Vb_a)
+rho = 350
+aaa = 2.9e-3
+D = 100e6
 
-#Dt = Constant(dt/2.)
 lhs1 = (2.0*ub-dt*vb)*phib*dx
 rhs1 = (2.0*ub_prev+dt*vb_prev)*phib*dx
-lhs2 = 2.0*vb*psib*dx + dt*inner(grad(ub), grad(psib))*dx
-rhs2 = 2.0*vb_prev*psib*dx - dt*inner(grad(ub_prev), grad(psib))*dx + T1*psib*dx
+lhs2 = 2.0*vb*psib*dx + D*aaa**2/rho*1000*1000*1000*1000*dt*inner(grad(ub), grad(psib))*dx
+rhs2 = 2.0*vb_prev*psib*dx - D*aaa**2/rho*1000*1000*1000*1000*dt*inner(grad(ub_prev), grad(psib))*dx + 1.0/(rho*aaa)*T1*psib*dx
 
 A = assemble(lhs1 + lhs2)
 b = assemble(rhs1 + rhs2)
@@ -148,16 +105,19 @@ output_file = File("scalar_results.pvd", "compressed")
 wave = wb.split()[1]
 wave.rename("WaveFunction", wave.name())
 #output_file << (wave, t)
-up = plot(ub_prev, elevate=75.0) #, range_min=-0.1, range_max=0.5)
-A = assemble(lhs1 + lhs2)
-b = assemble(rhs1 + rhs2)
-print(A.array()[0][0])
-print(b)
+print("hoge")
+up = plot(ub_prev, elevate=75.0 , range_min=-0.03, range_max=0.03)
 interactive()
 up.write_png('png/0000')
+print("hoge")
+A = assemble(lhs1 + lhs2)
+b = assemble(rhs1 + rhs2)
+#print(A.array()[0][0])
+#print(b)
 #+str(mpiRank))
 
-for step in range(44100):
+print("mainloop")
+for step in range(44100-1):
     # store previous values, increment time step
     t += dt
     #wb_prev.assign(w)
@@ -165,14 +125,22 @@ for step in range(44100):
     vbt, ubt = wb.split(deepcopy = True)
     vb_prev.assign(vbt)
     ub_prev.assign(ubt)
+    '''
+    if step == 20:
+        for i in range(wb.vector().array().size):
+            if wb.vector().array()[i] != 0.0:
+                print(str(i) + ':' + str(wb.vector().array()[i]))
+    '''
+    wav_data[step+1] = wb.vector().array()[3128*2]
+    f.write(str(wav_data[step+1])+'\n')
     # assemble forms and solve
     tension = float(tension_log[step+1]-tension_log[step])
     T0 = Expression('exp(-0.001*((x[0]-0.0)*(x[0]-0.0)+(x[1]-100.0)*(x[1]-100.0)+(x[2]+150.0)*(x[2]+150.0)))*tension', tension=tension)
     T1 = interpolate(T0, Vb_a)
     lhs1 = (2.0*ub-dt*vb)*phib*dx
     rhs1 = (2.0*ub_prev+dt*vb_prev)*phib*dx
-    lhs2 = 2.0*vb*psib*dx + dt*inner(grad(ub), grad(psib))*dx
-    rhs2 = 2.0*vb_prev*psib*dx - dt*inner(grad(ub_prev), grad(psib))*dx + T1*psib*dx
+    lhs2 = 2.0*vb*psib*dx + D*aaa**2/rho*1000*1000*1000*1000*dt*inner(grad(ub), grad(psib))*dx
+    rhs2 = 2.0*vb_prev*psib*dx - D*aaa**2/rho*1000*1000*1000*1000*dt*inner(grad(ub_prev), grad(psib))*dx + 1.0/(rho*aaa)*T1*psib*dx
     A = assemble(lhs1 + lhs2)
     b = assemble(rhs1 + rhs2)
     #print(A)
@@ -185,6 +153,16 @@ for step in range(44100):
     wave.rename("WaveFunction", wave.name())
     #output_file << (wave, t)
     if(step%1000==0):
+        print(step)
+        print(wav_data[step+1])
+        #up = plot(ub_prev, range_min=-0.1, range_max=0.1)
         up = plot(ub_prev)#, range_min=-0.1, range_max=1.2)
         up.write_png('png/' + str(step/1000+1).zfill(4)) # + '_' + str(mpiRank))
         #interactive()
+
+f.close()
+wav_data = (wav_data/np.amax(wav_data))*32767
+wav_data = np.asarray(wav_data, dtype=np.int16)
+#print ("{0}".format(wav_data))
+output_wav_file_name = "result.wav"
+scipy.io.wavfile.write(output_wav_file_name,rate,wav_data)

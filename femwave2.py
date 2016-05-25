@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 #ut=v
-#vt=uxx-uxxxx-v+utxx
+#vt=uxx-uxxxx-v+utxx+(Ts-Tb)gamma(x-xn)
 #q,Du,DDu,Du(-)
 #境界条件考慮
 #片側開放端ver
+#外力あり
 import os
 import os.path
 import subprocess
@@ -40,6 +41,8 @@ class Femwave:
         self.step=0 #現在のステップ
         self.size=(self.M-1)*6 #係数行列及びベクトルのサイズ
         self.pi = 3.1415
+        self.Ts = 0.0#tension #弦の張力
+        self.Tb = 0.0 #ボディの張力
         #グラフ関連
         self.graph_num=0
         self.fig = plt.figure()
@@ -169,12 +172,14 @@ class Femwave:
         self.time = np.zeros( (self.tmax*self.rate) )      #時間
         self.tension_log = np.zeros( (self.tmax*self.rate) ) #張力
         self.x = np.zeros( (self.M) )
-        ###u初期値設定
+        self.b = np.zeros( (self.size) ) #外力のベクトル 
+        ###初期値設定
         for i in range(self.M-1):
             self.uvn[i] = exp(-50*((i+1)*self.h-self.length/5)*((i+1)*self.h-self.length/5))/50.0
         for i in range(self.M):
             self.x[i] = i*self.h
         self.un[1:self.M] = self.uvn[:self.M-1]
+        self.b[self.M-2] = self.Ts - self.Tb
         self.time[0] = self.t 
         #wav_data
         self.wav_data[self.step] = self.un[self.M/2]
@@ -184,8 +189,9 @@ class Femwave:
     #1ステップ進めて、現在のステップ数を返す
     def simulate_one_step(self):
         #右辺計算
+        self.b[self.M-2] = self.Ts - self.Tb
         right = np.zeros( (self.size) )
-        right = np.dot(self.co_right,self.uvn)
+        right = np.dot(self.co_right,self.uvn) + self.b
         #解く
         self.uvn = np.linalg.solve(self.co_left,right)
         self.un[1:self.M] = self.uvn[:self.M-1]
@@ -267,6 +273,15 @@ class Femwave:
         deltaL = deltaL - self.length
         #張力
         self.tension_log[self.step] = self.tension + self.young*self.section_area*deltaL/self.length 
+        self.Ts = self.tension + self.young*self.section_area*deltaL/self.length 
+
+    #弦の張力出力
+    def get_string_tension(self):
+        return self.Ts
+
+    #ボディの張力設定
+    def set_body_tension(self,T):
+        self.Tb = T
 
     #張力出力
     def output_tension(self):

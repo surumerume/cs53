@@ -3,8 +3,8 @@
 
 import Tkinter as tk
 #import pyglet
-from femwave2 import Femwave
-import femwave2
+from femwave3 import Femwave
+import femwave3
 import os
 import sys
 import subprocess

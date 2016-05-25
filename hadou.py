@@ -3,8 +3,9 @@ import numpy as np
 
 # Create mesh and define function space
 #mesh = UnitSquareMesh(6, 4)
-mesh = UnitCubeMesh(6, 4, 5)
+#mesh = UnitCubeMesh(6, 4, 5)
 #mesh = Mesh("Technology_44.xml.gz")
+mesh = Mesh("plane.xml")
 V = FunctionSpace(mesh, 'Lagrange', 1)
 
 alpha = 3 
