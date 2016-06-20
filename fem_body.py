@@ -57,9 +57,37 @@ triangles = np.array( [[0,1,3], [1,4,3], [4,1,2], [2,5,4], [3,4,6], [4,7,6], [4,
 BC = np.array( [1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1] )
 #節点と要素のそれぞれの数
 number_of_point = xy.shape[0]
+number_of_element = triangles.shape[0]
+#境界を判別してみるテスト
+BC2 = np.zeros( (number_of_point) )
+edge_list = [] 
+for i in range(number_of_element):
+    for j in range(3):
+        edge_list.append([triangles[i][j%3],triangles[i][(j+1)%3]])
+print(edge_list)
+#重複削除（一度しか出てこない辺＝境界！）
+boundary_list = []
+flag = 0
+for i in range(len(edge_list)):
+    l = edge_list[i]
+    for j in range(len(edge_list)):
+        if ((l[0]==edge_list[j][0] and l[1]==edge_list[j][1]) or (l[0]==edge_list[j][1] and l[1]==edge_list[j][0])) and i!=j:
+            flag = 1
+            break
+    if flag == 0:
+        boundary_list.append(l)
+    flag = 0
+    print (boundary_list)
+#境界条件設定
+for i in range(number_of_point):
+    for j in range(len(boundary_list)):
+        if i == boundary_list[j][0] or i == boundary_list[j][1]:
+            BC2[i] = 1
+            break
+print(BC2)
+exit()
 print(number_of_point)
 print(BC.shape[0])
-number_of_element = triangles.shape[0]
 #各サイズ
 size = (number_of_point-np.sum(BC))*2
 u_size = number_of_point-np.sum(BC)
