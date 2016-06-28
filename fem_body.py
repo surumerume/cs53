@@ -19,14 +19,18 @@
 ###########################
 import numpy as np
 from math import fabs
+from math import sqrt
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 from mpl_toolkits.mplot3d import Axes3D
 from fem_string import Femwave
+import os
+import os.path
+import subprocess
 
 #三角形の面積を返す関数
 def calc_area(p1, p2, p3):
-    print(p2[0])
+    #print(p2[0])
     return (1.0/2.0)*fabs( (p2[0]-p1[0])*(p3[1]-p1[1]) - (p2[1]-p1[1])*(p3[0]-p1[0]) )
 
 #=====初期設定=====#
@@ -42,7 +46,12 @@ rho = 350
 aaa = 2.9e-3
 D = 100e6
 R=7.0
-input_point = 4
+#外力を入力する点（決め打ち）
+input_point = 8 
+#フォルダ
+foldername = 'body_result'
+if not os.path.exists(foldername):
+    os.mkdir(foldername)
 #***あとでメッシュデータから読み込むinitのようなメソッドを作る
 #ポイント行列 節点番号と座標
 xy = np.array( [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0],
@@ -58,8 +67,77 @@ BC = np.array( [1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1] )
 #節点と要素のそれぞれの数
 number_of_point = xy.shape[0]
 number_of_element = triangles.shape[0]
+
+#volファイルを読み込んでみるテスト
+vol_file = open('output_v4.vol', 'r')
+#要素のところまで行を進める
+while True:
+    s = vol_file.readline() 
+    if s.find('surfaceelementsgi')!=-1:
+        break
+vol_file.readline()
+triangles_list = [] 
+count = 0
+while True:
+    s = vol_file.readline()
+    if s=='\n':
+        break
+    s1 = s.strip()
+    s2 = s1.split()
+    #5番目からポイントっぽい
+    #print(s2)
+    #surfnrで分別してみる（決め打ち）
+    print(s2[0])
+    if int(s2[0]) == 2:
+        triangles_list.append(int(s2[5])-1) 
+        triangles_list.append(int(s2[6])-1) 
+        triangles_list.append(int(s2[7])-1) 
+        count += 1
+#print(triangles_list)
+triangles = np.asarray(triangles_list)
+triangles = np.reshape(triangles, (count,3))
+#print(triangles)
+#今度は座標
+while True:
+    s = vol_file.readline() 
+    if s.find('points')!=-1:
+        break
+vol_file.readline()
+xy_list = [] 
+count = 0
+while True:
+    s = vol_file.readline()
+    if s=='\n':
+        break
+    s1 = s.strip()
+    s2 = s1.split()
+    #0:x 1:z 2:y
+    #print(s2)
+    #一旦タプルで保存
+    xy_list.append((float(s2[0]),float(s2[2]))) 
+    #xy_list.append(float(s2[2])) 
+    count += 1
+print(xy_list)
+#重複削除
+#memo:sortedで順番が変わらないようにしている
+xy_list = list(sorted(set(xy_list),key=xy_list.index))
+print(xy_list)
+xy_list_uni = []
+for i in range(len(xy_list)):
+    xy_list_uni.append(xy_list[i][0])
+    xy_list_uni.append(xy_list[i][1])
+xy = np.asarray(xy_list_uni)
+xy = np.reshape(xy, (int(len(xy_list_uni)/2),2))
+print('<---xy--->')
+print(xy)
+#節点と要素のそれぞれの数（更新）
+number_of_point = xy.shape[0]
+number_of_element = triangles.shape[0]
+print(number_of_point)
+print(number_of_element)
+
 #境界を判別してみるテスト
-BC2 = np.zeros( (number_of_point) )
+BC = np.zeros( (number_of_point) )
 edge_list = [] 
 for i in range(number_of_element):
     for j in range(3):
@@ -68,26 +146,33 @@ print(edge_list)
 #重複削除（一度しか出てこない辺＝境界！）
 boundary_list = []
 flag = 0
+print('<-----boundary_list----->')
 for i in range(len(edge_list)):
     l = edge_list[i]
+    print('<---l--->')
+    print(l)
     for j in range(len(edge_list)):
         if ((l[0]==edge_list[j][0] and l[1]==edge_list[j][1]) or (l[0]==edge_list[j][1] and l[1]==edge_list[j][0])) and i!=j:
+            print(edge_list[j])
             flag = 1
             break
     if flag == 0:
         boundary_list.append(l)
+        print('<---add--->')
+        print (boundary_list)
     flag = 0
-    print (boundary_list)
+print (boundary_list)
 #境界条件設定
 for i in range(number_of_point):
     for j in range(len(boundary_list)):
         if i == boundary_list[j][0] or i == boundary_list[j][1]:
-            BC2[i] = 1
+            BC[i] = 1
             break
-print(BC2)
-exit()
-print(number_of_point)
-print(BC.shape[0])
+print(BC)
+#テスト終わり
+#print(number_of_point)
+#print(BC.shape[0])
+
 #各サイズ
 size = (number_of_point-np.sum(BC))*2
 u_size = number_of_point-np.sum(BC)
@@ -95,12 +180,12 @@ v_size = number_of_point-np.sum(BC)
 #係数行列
 #全体
 co_left = np.zeros( (size, size) )
-print(co_left)
+#print(co_left)
 co_right = np.zeros( (size, size) )
 #固定端|微分なし*微分なし
-print(u_size)
+#print(u_size)
 M1 = np.zeros( (number_of_point-np.sum(BC),number_of_point-np.sum(BC)) )
-print(M1)
+#print(M1)
 #固定端|微分あり*微分あり
 M2 = np.zeros( (number_of_point-np.sum(BC),number_of_point-np.sum(BC)) )
 #外力
@@ -112,13 +197,14 @@ un = np.zeros(number_of_point) #グラフ書き出し用
 right = np.zeros(size)
 #グラフ設定用
 output_plt_file_name = 'body_result/plot.plt'
+grid_num = str(sqrt(number_of_point))
 plt_file = open(output_plt_file_name, 'w')
 plt_file.write('#plot.plt\n')
-plt_file.write('set xrange [0:3]\n')
-plt_file.write('set yrange [0:3]\n')
-plt_file.write('set zrange [-0.05:0.05]\n')
+plt_file.write('set xrange [-0.5:0.5]\n')
+plt_file.write('set yrange [-0.5:0.5]\n')
+plt_file.write('set zrange [-0.01:0.01]\n')
 plt_file.write('set terminal png\n')
-plt_file.write('set dgrid3d 4,4\n')
+plt_file.write('set dgrid3d '+ grid_num +','+ grid_num + '\n')
 plt_file.write('set hidden3d\n')
 #value_lim = np.linspace(-0.001, 0.001, 30, endpoint=True) 
 
@@ -137,9 +223,15 @@ tension = 60.97
 #uxの境界条件取得
 ux_bc = fem.get_ux_bc()
 #ux_bc = sin(pi/360*step)
+#ux_bc = 0.0 
+rho_s = 1140.0  
+aaa_s = 0.5188e-6 
+
+#uvn[8] = 1.0
 
 #=====係数行列計算=====#
 #---各行列についてローカルからグローバルを作る
+print('<-----matrix----->')
 for k in range(number_of_element):
     print("element")
     print(k)
@@ -155,27 +247,27 @@ for k in range(number_of_element):
     M2_local = area/3.0 * np.array( [[b[0]*b[0]+c[0]*c[0], b[0]*b[1]+c[0]*c[1], b[0]*b[2]+c[0]*c[2]],
                                     [b[1]*b[0]+c[1]*c[0], b[1]*b[1]+c[1]*c[1], b[1]*b[2]+c[1]*c[2]],
                                     [b[2]*b[0]+c[2]*c[0], b[2]*b[1]+c[2]*c[1], b[2]*b[2]+c[2]*c[2]]] )
-    print(b)
-    print(c)
+    #print(b)
+    #print(c)
     #loc2glb
-    print("loc2glb")
+    #print("loc2glb")
     for i in range(3):
         for j in range(3):
             #今回はどちらも境界条件固定なので境界ならグローバルには足さない
             if BC[triangles[k][i]]==0 and BC[triangles[k][j]]==0: 
-                print("i")
+                #print("i")
                 loc2glb_i = triangles[k][i]-np.sum(BC[0:triangles[k][i]])
-                print(loc2glb_i)
-                print("j")
+                #print(loc2glb_i)
+                #print("j")
                 loc2glb_j = triangles[k][j]-np.sum(BC[0:triangles[k][j]])
-                print(loc2glb_j)
+                #print(loc2glb_j)
                 M1[loc2glb_i][loc2glb_j] += M1_local[i][j]
                 #M1 += M1_local[i][j]
                 M2[loc2glb_i][loc2glb_j] += M2_local[i][j]
                 #M2 += M2_local[i][j]
 #---組み合わせて全体の係数行列を作る
 #係数
-co1 = D*aaa**2/(rho*dt)
+co1 = D*aaa**2/(rho*2)
 #---co_matrix---
 #---co_left---[u(n+1) v(n+1)]
 # u(n+1)(固) v(n+1)(固)
@@ -188,23 +280,43 @@ co1 = D*aaa**2/(rho*dt)
 #---左辺係数行列計算---#
 #memo:hstack=列結合,vstack=行結合
 co_left = np.vstack( (np.hstack((1.0/dt*M1, -1.0/2.0*M1)), np.hstack((co1*M2, 1.0/dt*M1))) )
+print('<---co_left--->')
+print(co_left)
 #---右辺係数行列計算---#
 co_right = np.vstack( (np.hstack((1.0/dt*M1, 1.0/2.0*M1)), np.hstack((-co1*M2, 1.0/dt*M1))) )
+print('<---co_right--->')
+print(co_right)
+
+cnt = 0
+for i in range(number_of_point):
+    if BC[i] == 0:
+        un[i] = uvn[cnt]
+        cnt += 1
+#gnuplotでグラフを作成
+output_txt_file_name = foldername + '/' + str(graph_num).zfill(4) + '.txt'
+f = open(output_txt_file_name, 'w')
+for i in range(number_of_point):
+    f.write(str(xy[i][0]) + ' ' + str(xy[i][1]) + ' ' + str(un[i]) + '\n')
+f.close
+plt_file.write('set output"' + str(graph_num).zfill(4) + '.png"\n')
+plt_file.write('splot "' + str(graph_num).zfill(4) + '.txt" w lp\n')
+graph_num += 1
 
 #===mainloop===#
+print('<-----mainloop----->')
 while step*dt<tmax:
-    print('#'+str(step))
+    #print('#'+str(step))
     #---1.ボディの更新,弦の境界決定---#
     #右辺計算
-    #外力処理:今回は4に入れてみる
-    ex_f[input_point-np.sum(BC[0:input_point])] = -1.0/(rho*aaa)*tension*ux_bc 
+    #外力処理:input_pointのところに入力
+    ex_f[input_point-np.sum(BC[0:input_point])] = -tension/(rho*aaa)*ux_bc 
     right = np.zeros( (size) )
     right = np.dot(co_right,uvn) + ex_f
     #解く
     uvn = np.linalg.solve(co_left,right)
     #弦の境界設定
-    print(uvn)
-    print(uvn[input_point-np.sum(BC[0:input_point])])
+    #print(uvn)
+    #print(uvn[input_point-np.sum(BC[0:input_point])])
     fem.set_un_bc(uvn[input_point-np.sum(BC[0:input_point])])
     #---2.弦を1ステップ進める---#
     step = fem.simulate_one_step()
@@ -219,10 +331,12 @@ while step*dt<tmax:
         if BC[i] == 0:
             un[i] = uvn[cnt]
             cnt += 1
-    print(un)
+    #print(un)
     if step%1000==0:
+        print('#'+str(step))
+        print(un)
         #gnuplotでグラフを作成
-        output_txt_file_name = 'body_result/' + str(graph_num).zfill(4) + '.txt'
+        output_txt_file_name = foldername + '/' + str(graph_num).zfill(4) + '.txt'
         f = open(output_txt_file_name, 'w')
         for i in range(number_of_point):
             f.write(str(xy[i][0]) + ' ' + str(xy[i][1]) + ' ' + str(un[i]) + '\n')
@@ -261,3 +375,29 @@ while step*dt<tmax:
         #plt.zlim([0.0,3.0])
         plt.show()
         '''
+
+#ffmpeg命令
+cmdstring4 = ('gnuplot', 'plot.plt')
+cmdstring = ('ffmpeg', '-r', '60', '-i', '%04d.png',
+        '-qscale', '0', '-y', 'out.avi')
+cmdstring2 = ('ffmpeg', '-i', 'out.avi',
+        '-i', 'result.wav', '-y', 'result.avi')
+cmdstring3 = ('ffmpeg', '-i', 'result.avi',
+        '-movflags', 'faststart', '-vcodec', 'libx264',
+        '-acodec', 'copy', '-y', 'result.mp4')
+#'libmp3lame', '-ac', '1', '-ar', '44100',
+        #'-ab', '256k', '-y', 'result.mp4')
+os.chdir(foldername)
+p = subprocess.Popen(cmdstring4)#, shell=True)
+p.wait()
+#subprocess.call("rm result.avi", shell=True)
+p = subprocess.Popen(cmdstring)#, shell=True)
+p.wait()
+#p.kill()
+#p = subprocess.Popen(cmdstring2)#, shell=True)
+#p.wait()
+#p.kill()
+#p = subprocess.Popen(cmdstring3)#, shell=True)
+#p.wait()
+#p.kill()
+os.chdir("..")

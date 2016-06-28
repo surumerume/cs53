@@ -404,7 +404,6 @@ def make_movie(foldername="result"):
     #フォルダチェック
     if not os.path.exists(foldername):
         sys.exit ('Error !!')
-
     #ffmpeg命令
     cmdstring = ('ffmpeg.exe', '-r', '60', '-i', '%04d.png',
             '-qscale', '0', '-y', 'out.avi')
@@ -415,23 +414,17 @@ def make_movie(foldername="result"):
             '-acodec', 'copy', '-y', 'result.mp4')
     #'libmp3lame', '-ac', '1', '-ar', '44100',
             #'-ab', '256k', '-y', 'result.mp4')
-
     os.chdir(foldername)
-
     #subprocess.call("rm result.avi", shell=True)
-
     p = subprocess.Popen(cmdstring)#, shell=True)
     p.wait()
     p.kill()
-
     p = subprocess.Popen(cmdstring2)#, shell=True)
     p.wait()
     p.kill()
-
     p = subprocess.Popen(cmdstring3)#, shell=True)
     p.wait()
     p.kill()
-
     os.chdir("..")
 
 def play_movie(foldername='result'):
