@@ -36,7 +36,7 @@ def calc_area(p1, p2, p3):
 #=====初期設定=====#
 t=0.0 #初期時刻
 tmax=1.0 #終了時刻
-rate=44100 #サンプリングレート
+rate=441000 #サンプリングレート
 dt=1.0/rate #時間刻み
 step=0 #現在のステップ
 fps = 60 
@@ -52,6 +52,7 @@ input_point = 8
 foldername = 'body_result'
 if not os.path.exists(foldername):
     os.mkdir(foldername)
+f_wav = open(foldername + '/wave_log.txt', 'w')
 #***あとでメッシュデータから読み込むinitのようなメソッドを作る
 #ポイント行列 節点番号と座標
 xy = np.array( [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0],
@@ -211,6 +212,8 @@ plt_file.write('set hidden3d\n')
 #===弦の初期設定（とゼロステップ目出力）===#
 fem = Femwave("result",rate,0.65,1140,0.5188e-6,
         60.97,8.1e-7,6.4e-4,5.4e9,0.171e-12)
+#fem = Femwave("result",rate,0.65,1140,0.5188e-6,
+#        60.97,0.0,0.0,5.4e9,0.171e-12)
 #エネルギー未対応
 #fem.calc_energy()
 #fem.calc_tension()
@@ -243,8 +246,8 @@ for k in range(number_of_element):
     #c=[x(2)-x(1),x(0)-x(2),x(1)-x(0)]/(2*area)
     b = np.array( [ xy[triangles[k][1]][1] - xy[triangles[k][2]][1], xy[triangles[k][2]][1] - xy[triangles[k][0]][1], xy[triangles[k][0]][1] - xy[triangles[k][1]][1] ] ) /(2.0*area)
     c = np.array( [ xy[triangles[k][2]][0] - xy[triangles[k][1]][0], xy[triangles[k][0]][0] - xy[triangles[k][2]][0], xy[triangles[k][1]][0] - xy[triangles[k][0]][0] ] ) /(2.0*area)
-    M1_local = area/2.0 * np.array( [[2,1,1], [1,2,1], [1,1,2]] )
-    M2_local = area/3.0 * np.array( [[b[0]*b[0]+c[0]*c[0], b[0]*b[1]+c[0]*c[1], b[0]*b[2]+c[0]*c[2]],
+    M1_local = area/12.0 * np.array( [[2,1,1], [1,2,1], [1,1,2]] )
+    M2_local = area * np.array( [[b[0]*b[0]+c[0]*c[0], b[0]*b[1]+c[0]*c[1], b[0]*b[2]+c[0]*c[2]],
                                     [b[1]*b[0]+c[1]*c[0], b[1]*b[1]+c[1]*c[1], b[1]*b[2]+c[1]*c[2]],
                                     [b[2]*b[0]+c[2]*c[0], b[2]*b[1]+c[2]*c[1], b[2]*b[2]+c[2]*c[2]]] )
     #print(b)
@@ -325,14 +328,16 @@ while step*dt<tmax:
     ux_bc = fem.get_ux_bc()
     #print(uvn[0])
     #---グラフ出力処理---#
-    #unをグラフ用に整理
-    cnt = 0
-    for i in range(number_of_point):
-        if BC[i] == 0:
-            un[i] = uvn[cnt]
-            cnt += 1
-    #print(un)
-    if step%1000==0:
+    if step%10==0:
+        f_wav.write(str(uvn[input_point+2])+'\n')
+    if step%10000==0:
+        #unをグラフ用に整理
+        cnt = 0
+        for i in range(number_of_point):
+            if BC[i] == 0:
+                un[i] = uvn[cnt]
+                cnt += 1
+        #print(un)
         print('#'+str(step))
         print(un)
         #gnuplotでグラフを作成
@@ -375,6 +380,8 @@ while step*dt<tmax:
         #plt.zlim([0.0,3.0])
         plt.show()
         '''
+
+f_wav.close()
 
 #ffmpeg命令
 cmdstring4 = ('gnuplot', 'plot.plt')

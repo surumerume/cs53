@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 rate = 44100
 
-input_txt_file_name = 'wave_log3.txt'
+input_txt_file_name = 'wave_log.txt'
 f = open(input_txt_file_name, 'r')
 line = f.readline()
 l=[]
