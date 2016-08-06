@@ -10,7 +10,6 @@
 # 6  7  8 11
 # 3  4  5 10
 # 0  1  2  9
-#4に外力を入れてみようの巻
 ###########################
 #Todo list
 #-グラフから自動動画生成 プロセスからバッチファイルを叩く
@@ -27,6 +26,7 @@ from fem_string import Femwave
 import os
 import os.path
 import subprocess
+from scipy.sparse import csc_matrix, linalg as sla
 
 #三角形の面積を返す関数
 def calc_area(p1, p2, p3):
@@ -36,7 +36,7 @@ def calc_area(p1, p2, p3):
 #=====初期設定=====#
 t=0.0 #初期時刻
 tmax=1.0 #終了時刻
-rate=441000 #サンプリングレート
+rate=4410000 #サンプリングレート
 dt=1.0/rate #時間刻み
 step=0 #現在のステップ
 fps = 60 
@@ -47,7 +47,7 @@ aaa = 2.9e-3
 D = 100e6
 R=7.0
 #外力を入力する点（決め打ち）
-input_point = 8 
+input_point = 4 
 #フォルダ
 foldername = 'body_result'
 if not os.path.exists(foldername):
@@ -69,7 +69,9 @@ BC = np.array( [1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1] )
 number_of_point = xy.shape[0]
 number_of_element = triangles.shape[0]
 
+'''
 #volファイルを読み込んでみるテスト
+#ボツになりました
 vol_file = open('output_v4.vol', 'r')
 #要素のところまで行を進める
 while True:
@@ -136,7 +138,30 @@ number_of_point = xy.shape[0]
 number_of_element = triangles.shape[0]
 print(number_of_point)
 print(number_of_element)
+'''
 
+#自作のmeshファイルを読み込んでみるテスト
+mesh_file = open('guitar_plane_68.mesh', 'r')
+#mesh_file = open('plane02.mesh', 'r')
+l = mesh_file.readline().replace('\n','').split(',')
+xy = np.asarray(l, dtype=np.float32)
+xy = np.reshape(xy, (len(l)/2,2))
+l = mesh_file.readline().replace('\n','').split(',')
+triangles = np.asarray(l, dtype=np.int32)
+triangles = np.reshape(triangles, (len(l)/3,3))
+l = mesh_file.readline().replace('\n','').split(',')
+BC = np.asarray(l, dtype=np.int32)
+mesh_file.close()
+print(xy)
+print(triangles)
+print(BC)
+#節点と要素のそれぞれの数（更新）
+number_of_point = xy.shape[0]
+number_of_element = triangles.shape[0]
+print(number_of_point)
+print(number_of_element)
+
+'''
 #境界を判別してみるテスト
 BC = np.zeros( (number_of_point) )
 edge_list = [] 
@@ -173,6 +198,7 @@ print(BC)
 #テスト終わり
 #print(number_of_point)
 #print(BC.shape[0])
+'''
 
 #各サイズ
 size = (number_of_point-np.sum(BC))*2
@@ -201,18 +227,20 @@ output_plt_file_name = 'body_result/plot.plt'
 grid_num = str(sqrt(number_of_point))
 plt_file = open(output_plt_file_name, 'w')
 plt_file.write('#plot.plt\n')
-plt_file.write('set xrange [-0.5:0.5]\n')
-plt_file.write('set yrange [-0.5:0.5]\n')
+plt_file.write('set xrange [-30:30]\n')
+plt_file.write('set yrange [-30:30]\n')
 plt_file.write('set zrange [-0.01:0.01]\n')
 plt_file.write('set terminal png\n')
-plt_file.write('set dgrid3d '+ grid_num +','+ grid_num + '\n')
-plt_file.write('set hidden3d\n')
+#plt_file.write('set dgrid3d '+ grid_num +','+ grid_num + '\n')
+#plt_file.write('set hidden3d\n')
 #value_lim = np.linspace(-0.001, 0.001, 30, endpoint=True) 
 
 #===弦の初期設定（とゼロステップ目出力）===#
-fem = Femwave("result",rate,0.65,1140,0.5188e-6,
-        60.97,8.1e-7,6.4e-4,5.4e9,0.171e-12)
 #fem = Femwave("result",rate,0.65,1140,0.5188e-6,
+#        60.97,8.1e-7,6.4e-4,5.4e9,0.171e-12)
+fem = Femwave("result",rate,0.65,1140,0.5188e-6,
+        60.97,0.0,0.0,5.4e9,0.171e-12)
+#fem = Femwave("result",rate,10.65,1140,0.5188e-6,
 #        60.97,0.0,0.0,5.4e9,0.171e-12)
 #エネルギー未対応
 #fem.calc_energy()
@@ -283,6 +311,8 @@ co1 = D*aaa**2/(rho*2)
 #---左辺係数行列計算---#
 #memo:hstack=列結合,vstack=行結合
 co_left = np.vstack( (np.hstack((1.0/dt*M1, -1.0/2.0*M1)), np.hstack((co1*M2, 1.0/dt*M1))) )
+csc_co_left = csc_matrix(co_left)
+lu = sla.splu(csc_co_left)
 print('<---co_left--->')
 print(co_left)
 #---右辺係数行列計算---#
@@ -296,13 +326,35 @@ for i in range(number_of_point):
         un[i] = uvn[cnt]
         cnt += 1
 #gnuplotでグラフを作成
-output_txt_file_name = foldername + '/' + str(graph_num).zfill(4) + '.txt'
+#メッシュ色付け
+output_txt_file_name = foldername + '/' + str(graph_num).zfill(4) + '_1.txt'
 f = open(output_txt_file_name, 'w')
+for i in range(number_of_element):
+    ave = (un[triangles[i][0]]+un[triangles[i][1]]+un[triangles[i][2]])/3.0
+    f.write(str(xy[triangles[i][0]][0]) + ' ' + str(xy[triangles[i][0]][1]) + ' ' + str(ave) + '\n')
+    f.write(str(xy[triangles[i][1]][0]) + ' ' + str(xy[triangles[i][1]][1]) + ' ' + str(ave) + '\n')
+    f.write('\n')
+    f.write(str(xy[triangles[i][2]][0]) + ' ' + str(xy[triangles[i][2]][1]) + ' ' + str(ave) + '\n')
+    f.write(str(xy[triangles[i][1]][0]) + ' ' + str(xy[triangles[i][1]][1]) + ' ' + str(ave) + '\n')
+    f.write('\n')
+    f.write('\n')
+#三角形出力
+output_txt_file_name = foldername + '/' + str(graph_num).zfill(4) + '_2.txt'
+f = open(output_txt_file_name, 'w')
+for i in range(number_of_element):
+    for j in range(3):
+        f.write(str(xy[triangles[i][j]][0]) + ' ' + str(xy[triangles[i][j]][1]) + ' ' + str(un[triangles[i][j]]) + '\n')
+    f.write(str(xy[triangles[i][0]][0]) + ' ' + str(xy[triangles[i][0]][1]) + ' ' + str(un[triangles[i][0]]) + '\n')
+    f.write('\n')
+    f.write('\n')
+'''
 for i in range(number_of_point):
     f.write(str(xy[i][0]) + ' ' + str(xy[i][1]) + ' ' + str(un[i]) + '\n')
+'''
 f.close
 plt_file.write('set output"' + str(graph_num).zfill(4) + '.png"\n')
-plt_file.write('splot "' + str(graph_num).zfill(4) + '.txt" w lp\n')
+plt_file.write('splot "' + str(graph_num).zfill(4) + '_1.txt" using 1:2:3:4 with pm3d, "' + str(graph_num).zfill(4) + '_2.txt" using 1:2:3 with lines lt -1 \n')
+#plt_file.write('splot "' + str(graph_num).zfill(4) + '.txt" w lp\n')
 graph_num += 1
 
 #===mainloop===#
@@ -316,7 +368,8 @@ while step*dt<tmax:
     right = np.zeros( (size) )
     right = np.dot(co_right,uvn) + ex_f
     #解く
-    uvn = np.linalg.solve(co_left,right)
+    uvn = lu.solve(right)
+    #uvn = np.linalg.solve(co_left,right)
     #弦の境界設定
     #print(uvn)
     #print(uvn[input_point-np.sum(BC[0:input_point])])
@@ -328,9 +381,9 @@ while step*dt<tmax:
     ux_bc = fem.get_ux_bc()
     #print(uvn[0])
     #---グラフ出力処理---#
-    if step%10==0:
+    if step%100==0:
         f_wav.write(str(uvn[input_point+2])+'\n')
-    if step%10000==0:
+    if step%100000==0:
         #unをグラフ用に整理
         cnt = 0
         for i in range(number_of_point):
@@ -341,14 +394,37 @@ while step*dt<tmax:
         print('#'+str(step))
         print(un)
         #gnuplotでグラフを作成
-        output_txt_file_name = foldername + '/' + str(graph_num).zfill(4) + '.txt'
+        #メッシュ色付け
+        output_txt_file_name = foldername + '/' + str(graph_num).zfill(4) + '_1.txt'
         f = open(output_txt_file_name, 'w')
+        for i in range(number_of_element):
+            ave = (un[triangles[i][0]]+un[triangles[i][1]]+un[triangles[i][2]])/3.0
+            f.write(str(xy[triangles[i][0]][0]) + ' ' + str(xy[triangles[i][0]][1]) + ' ' + str(ave) + '\n')
+            f.write(str(xy[triangles[i][1]][0]) + ' ' + str(xy[triangles[i][1]][1]) + ' ' + str(ave) + '\n')
+            f.write('\n')
+            f.write(str(xy[triangles[i][2]][0]) + ' ' + str(xy[triangles[i][2]][1]) + ' ' + str(ave) + '\n')
+            f.write(str(xy[triangles[i][1]][0]) + ' ' + str(xy[triangles[i][1]][1]) + ' ' + str(ave) + '\n')
+            f.write('\n')
+            f.write('\n')
+        #三角形出力
+        output_txt_file_name = foldername + '/' + str(graph_num).zfill(4) + '_2.txt'
+        f = open(output_txt_file_name, 'w')
+        for i in range(number_of_element):
+            for j in range(3):
+                f.write(str(xy[triangles[i][j]][0]) + ' ' + str(xy[triangles[i][j]][1]) + ' ' + str(un[triangles[i][j]]) + '\n')
+            f.write(str(xy[triangles[i][0]][0]) + ' ' + str(xy[triangles[i][0]][1]) + ' ' + str(un[triangles[i][0]]) + '\n')
+            f.write('\n')
+            f.write('\n')
+        '''
         for i in range(number_of_point):
             f.write(str(xy[i][0]) + ' ' + str(xy[i][1]) + ' ' + str(un[i]) + '\n')
+        '''
         f.close
         plt_file.write('set output"' + str(graph_num).zfill(4) + '.png"\n')
-        plt_file.write('splot "' + str(graph_num).zfill(4) + '.txt" w lp\n')
+        plt_file.write('splot "' + str(graph_num).zfill(4) + '_1.txt" using 1:2:3:4 with pm3d, "' + str(graph_num).zfill(4) + '_2.txt" using 1:2:3 with lines lt -1 \n')
         graph_num += 1
+        fem.output_txt_result()
+        fem.make_u_graph()
         '''
         #matplotlibの成れの果て
         for i in range(number_of_element):
@@ -398,8 +474,8 @@ os.chdir(foldername)
 p = subprocess.Popen(cmdstring4)#, shell=True)
 p.wait()
 #subprocess.call("rm result.avi", shell=True)
-p = subprocess.Popen(cmdstring)#, shell=True)
-p.wait()
+#p = subprocess.Popen(cmdstring)#, shell=True)
+#p.wait()
 #p.kill()
 #p = subprocess.Popen(cmdstring2)#, shell=True)
 #p.wait()
