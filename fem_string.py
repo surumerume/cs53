@@ -5,6 +5,14 @@
 #q,Du,DDu,Du(-)
 #境界条件考慮
 #ボディに合わせて境界条件が変わる
+
+#============================
+#warning
+#グラフ処理未対応
+#45行目をコメントアウトしているのでグラフ出力できません
+#OpenBLASとの兼ね合いで動かない（？）原因不明のため放置
+#============================
+
 import os
 import os.path
 import subprocess
@@ -42,7 +50,7 @@ class Femwave:
         self.pi = 3.1415
         #グラフ関連
         self.graph_num=0
-        self.fig = plt.figure()
+        #self.fig = plt.figure()
         self.txt_num=0
         #===係数行列の計算===#
         #---行列---#

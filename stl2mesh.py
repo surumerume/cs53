@@ -10,7 +10,7 @@ coordinate = [0.0,0.0,0.0]
 
 #stlファイル読み込み
 #inputfilename = 'plane02_old32'
-inputfilename = 'guitar_plane_68'
+inputfilename = 'guitar_plane_1248'
 stl_file = open(inputfilename + '.stl', 'r')
 #要素のところまで行を進める
 while True:

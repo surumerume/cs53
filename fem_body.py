@@ -5,16 +5,11 @@
 #簡単な波動方程式を解いてみる
 #ut=v
 #vt=uxx
-#u:境界でゼロ固定
-#12 13 14 15 
-# 6  7  8 11
-# 3  4  5 10
-# 0  1  2  9
+#u:外側でゼロ固定，ホール側で解放
 ###########################
 #Todo list
 #-グラフから自動動画生成 プロセスからバッチファイルを叩く
-#-メッシュ読み込み stlファイルから読み込む？
-#--境界判定および境界の区分け
+#-loggingを使ってみる
 ###########################
 import numpy as np
 from math import fabs
@@ -27,6 +22,17 @@ import os
 import os.path
 import subprocess
 from scipy.sparse import csc_matrix, linalg as sla
+import logging
+import logging.config
+import yaml
+import time
+
+logging.config.dictConfig(yaml.load(open("config.yaml").read()))
+
+logger = logging.getLogger('mainloop')
+logger.info('program start')
+
+program_start_time = time.time()
 
 #三角形の面積を返す関数
 def calc_area(p1, p2, p3):
@@ -36,7 +42,7 @@ def calc_area(p1, p2, p3):
 #=====初期設定=====#
 t=0.0 #初期時刻
 tmax=1.0 #終了時刻
-rate=4410000 #サンプリングレート
+rate=44100000 #サンプリングレート
 dt=1.0/rate #時間刻み
 step=0 #現在のステップ
 fps = 60 
@@ -69,79 +75,8 @@ BC = np.array( [1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1] )
 number_of_point = xy.shape[0]
 number_of_element = triangles.shape[0]
 
-'''
-#volファイルを読み込んでみるテスト
-#ボツになりました
-vol_file = open('output_v4.vol', 'r')
-#要素のところまで行を進める
-while True:
-    s = vol_file.readline() 
-    if s.find('surfaceelementsgi')!=-1:
-        break
-vol_file.readline()
-triangles_list = [] 
-count = 0
-while True:
-    s = vol_file.readline()
-    if s=='\n':
-        break
-    s1 = s.strip()
-    s2 = s1.split()
-    #5番目からポイントっぽい
-    #print(s2)
-    #surfnrで分別してみる（決め打ち）
-    print(s2[0])
-    if int(s2[0]) == 2:
-        triangles_list.append(int(s2[5])-1) 
-        triangles_list.append(int(s2[6])-1) 
-        triangles_list.append(int(s2[7])-1) 
-        count += 1
-#print(triangles_list)
-triangles = np.asarray(triangles_list)
-triangles = np.reshape(triangles, (count,3))
-#print(triangles)
-#今度は座標
-while True:
-    s = vol_file.readline() 
-    if s.find('points')!=-1:
-        break
-vol_file.readline()
-xy_list = [] 
-count = 0
-while True:
-    s = vol_file.readline()
-    if s=='\n':
-        break
-    s1 = s.strip()
-    s2 = s1.split()
-    #0:x 1:z 2:y
-    #print(s2)
-    #一旦タプルで保存
-    xy_list.append((float(s2[0]),float(s2[2]))) 
-    #xy_list.append(float(s2[2])) 
-    count += 1
-print(xy_list)
-#重複削除
-#memo:sortedで順番が変わらないようにしている
-xy_list = list(sorted(set(xy_list),key=xy_list.index))
-print(xy_list)
-xy_list_uni = []
-for i in range(len(xy_list)):
-    xy_list_uni.append(xy_list[i][0])
-    xy_list_uni.append(xy_list[i][1])
-xy = np.asarray(xy_list_uni)
-xy = np.reshape(xy, (int(len(xy_list_uni)/2),2))
-print('<---xy--->')
-print(xy)
-#節点と要素のそれぞれの数（更新）
-number_of_point = xy.shape[0]
-number_of_element = triangles.shape[0]
-print(number_of_point)
-print(number_of_element)
-'''
-
 #自作のmeshファイルを読み込んでみるテスト
-mesh_file = open('guitar_plane_68.mesh', 'r')
+mesh_file = open('guitar_plane_1248.mesh', 'r')
 #mesh_file = open('plane02.mesh', 'r')
 l = mesh_file.readline().replace('\n','').split(',')
 xy = np.asarray(l, dtype=np.float32)
@@ -152,53 +87,14 @@ triangles = np.reshape(triangles, (len(l)/3,3))
 l = mesh_file.readline().replace('\n','').split(',')
 BC = np.asarray(l, dtype=np.int32)
 mesh_file.close()
-print(xy)
-print(triangles)
-print(BC)
+logger.debug('xy : \n %s' % np.array2string(xy))
+logger.debug('triangles : \n %s' % np.array2string(triangles))
+logger.debug('BC : \n %s' % np.array2string(BC))
 #節点と要素のそれぞれの数（更新）
 number_of_point = xy.shape[0]
 number_of_element = triangles.shape[0]
-print(number_of_point)
-print(number_of_element)
-
-'''
-#境界を判別してみるテスト
-BC = np.zeros( (number_of_point) )
-edge_list = [] 
-for i in range(number_of_element):
-    for j in range(3):
-        edge_list.append([triangles[i][j%3],triangles[i][(j+1)%3]])
-print(edge_list)
-#重複削除（一度しか出てこない辺＝境界！）
-boundary_list = []
-flag = 0
-print('<-----boundary_list----->')
-for i in range(len(edge_list)):
-    l = edge_list[i]
-    print('<---l--->')
-    print(l)
-    for j in range(len(edge_list)):
-        if ((l[0]==edge_list[j][0] and l[1]==edge_list[j][1]) or (l[0]==edge_list[j][1] and l[1]==edge_list[j][0])) and i!=j:
-            print(edge_list[j])
-            flag = 1
-            break
-    if flag == 0:
-        boundary_list.append(l)
-        print('<---add--->')
-        print (boundary_list)
-    flag = 0
-print (boundary_list)
-#境界条件設定
-for i in range(number_of_point):
-    for j in range(len(boundary_list)):
-        if i == boundary_list[j][0] or i == boundary_list[j][1]:
-            BC[i] = 1
-            break
-print(BC)
-#テスト終わり
-#print(number_of_point)
-#print(BC.shape[0])
-'''
+logger.debug('number of point : %d' % number_of_point)
+logger.debug('number of element : %d' % number_of_element)
 
 #各サイズ
 size = (number_of_point-np.sum(BC))*2
@@ -227,9 +123,9 @@ output_plt_file_name = 'body_result/plot.plt'
 grid_num = str(sqrt(number_of_point))
 plt_file = open(output_plt_file_name, 'w')
 plt_file.write('#plot.plt\n')
-plt_file.write('set xrange [-30:30]\n')
-plt_file.write('set yrange [-30:30]\n')
-plt_file.write('set zrange [-0.01:0.01]\n')
+plt_file.write('set xrange [-0.5:0.5]\n')
+plt_file.write('set yrange [-0.5:0.5]\n')
+plt_file.write('set zrange [-0.1:0.1]\n')
 plt_file.write('set terminal png\n')
 #plt_file.write('set dgrid3d '+ grid_num +','+ grid_num + '\n')
 #plt_file.write('set hidden3d\n')
@@ -247,7 +143,7 @@ fem = Femwave("result",rate,0.65,1140,0.5188e-6,
 #fem.calc_tension()
 fem.set_fps(fps)
 fem.output_txt_result()
-fem.make_u_graph()
+#fem.make_u_graph()
 #張力
 tension = 60.97
 #tension = sin(pi/360*step)
@@ -262,13 +158,10 @@ aaa_s = 0.5188e-6
 
 #=====係数行列計算=====#
 #---各行列についてローカルからグローバルを作る
-print('<-----matrix----->')
+logger.info('start matrix')
 for k in range(number_of_element):
-    print("element")
-    print(k)
     area = calc_area(xy[triangles[k][0]],xy[triangles[k][1]],xy[triangles[k][2]])
-    print("area")
-    print(area)
+    logger.debug('element : %d, area : %f' , k, area)
     #ローカル要素行列計算
     #b=[y(1)-y(2),y(2)-y(0),y(0)-y(1)]/(2*area)
     #c=[x(2)-x(1),x(0)-x(2),x(1)-x(0)]/(2*area)
@@ -280,7 +173,7 @@ for k in range(number_of_element):
                                     [b[2]*b[0]+c[2]*c[0], b[2]*b[1]+c[2]*c[1], b[2]*b[2]+c[2]*c[2]]] )
     #print(b)
     #print(c)
-    #loc2glb
+    #<loc2glb>
     #print("loc2glb")
     for i in range(3):
         for j in range(3):
@@ -313,12 +206,11 @@ co1 = D*aaa**2/(rho*2)
 co_left = np.vstack( (np.hstack((1.0/dt*M1, -1.0/2.0*M1)), np.hstack((co1*M2, 1.0/dt*M1))) )
 csc_co_left = csc_matrix(co_left)
 lu = sla.splu(csc_co_left)
-print('<---co_left--->')
-print(co_left)
+logger.debug('<---co_left--->\n%s' % np.array2string(co_left))
 #---右辺係数行列計算---#
 co_right = np.vstack( (np.hstack((1.0/dt*M1, 1.0/2.0*M1)), np.hstack((-co1*M2, 1.0/dt*M1))) )
-print('<---co_right--->')
-print(co_right)
+logger.debug('<---co_right--->\n%s' % np.array2string(co_right))
+logger.info('end matrix')
 
 cnt = 0
 for i in range(number_of_point):
@@ -358,7 +250,9 @@ plt_file.write('splot "' + str(graph_num).zfill(4) + '_1.txt" using 1:2:3:4 with
 graph_num += 1
 
 #===mainloop===#
-print('<-----mainloop----->')
+logger.info('start mainloop')
+mainloop_start_time = time.time()
+laptime_start = time.time()
 while step*dt<tmax:
     #print('#'+str(step))
     #---1.ボディの更新,弦の境界決定---#
@@ -381,9 +275,9 @@ while step*dt<tmax:
     ux_bc = fem.get_ux_bc()
     #print(uvn[0])
     #---グラフ出力処理---#
-    if step%100==0:
+    if step%(rate/44100)==0:
         f_wav.write(str(uvn[input_point+2])+'\n')
-    if step%100000==0:
+    if step%(rate/60)==0:
         #unをグラフ用に整理
         cnt = 0
         for i in range(number_of_point):
@@ -391,8 +285,10 @@ while step*dt<tmax:
                 un[i] = uvn[cnt]
                 cnt += 1
         #print(un)
-        print('#'+str(step))
-        print(un)
+        laptime = time.time() - laptime_start
+        logger.info('%d #%d laptime:%f',graph_num, step, laptime)
+        laptime_start = time.time()
+        logger.debug('un\n%s' % np.array2string(un))
         #gnuplotでグラフを作成
         #メッシュ色付け
         output_txt_file_name = foldername + '/' + str(graph_num).zfill(4) + '_1.txt'
@@ -424,41 +320,16 @@ while step*dt<tmax:
         plt_file.write('splot "' + str(graph_num).zfill(4) + '_1.txt" using 1:2:3:4 with pm3d, "' + str(graph_num).zfill(4) + '_2.txt" using 1:2:3 with lines lt -1 \n')
         graph_num += 1
         fem.output_txt_result()
-        fem.make_u_graph()
-        '''
-        #matplotlibの成れの果て
-        for i in range(number_of_element):
-            for j in range(3):
-                x[i+j] = xy[triangles[i][j]][0]
-                y[i+j] = xy[triangles[i][j]][1]
-                graph_un[i+j] = un[triangles[i][j]]
-        fig = plt.figure()
-        ax = Axes3D(fig)
-        #ax.plot_surface(x,y,un)
-        ax.set_xlim(0.0, 3.0)
-        ax.set_ylim(0.0, 3.0)
-        ax.set_zlim(-0.05, 0.05)
-        #ax.scatter3D(x,y,un)
-        ax.plot3D(x,y,graph_un)
-        plt.show()
-        plt.figure()
-        #plt.gca().set_aspect('equal')
-        #plt.tricontourf(x, y, triangles, un, cmap=plt.cm.rainbow, norm=plt.Normalize(vmax=0.5,vmin=-5.0))
-        plt.tricontourf(x, y, triangles, un, vmin=-0.005, vmax=0.005)
-        #plt.tricontourf(x, y, triangles, un)
-        plt.colorbar()
-        #plt.colorbar(ticks=value_lim)
-        #plt.title('Contour plot of user-specified triangulation')
-        #plt.xlabel('Longitude (degrees)')
-        #plt.ylabel('Latitude (degrees)')
-        plt.xlim([-0.5,3.5])
-        plt.ylim([-0.5,3.5])
-        #plt.zlim([0.0,3.0])
-        plt.show()
-        '''
+        #fem.make_u_graph()
+
+mainloop_time = time.time() - mainloop_start_time
+logger.info('end mainloop time:%f', mainloop_time)
+program_time = time.time() - program_start_time
+logger.info('end program time:%f', program_time)
 
 f_wav.close()
 
+'''
 #ffmpeg命令
 cmdstring4 = ('gnuplot', 'plot.plt')
 cmdstring = ('ffmpeg', '-r', '60', '-i', '%04d.png',
@@ -484,3 +355,4 @@ p.wait()
 #p.wait()
 #p.kill()
 os.chdir("..")
+'''
